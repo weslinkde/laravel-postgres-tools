@@ -83,6 +83,7 @@ class PostgresHelper
             command: ['createdb', '--host', $this->host, '--port', $this->port, '--username', $this->userName, '--owner', $this->userName, $this->name],
             env: ['PGPASSWORD' => $this->password]
         );
+        $process->setTimeout(0); // 0 = no timeout
 
         $process->run();
 
@@ -100,6 +101,7 @@ class PostgresHelper
             command: ['dropdb', '--host', $this->host, '--port', $this->port, '--username', $this->userName, '--force', $this->name],
             env: ['PGPASSWORD' => $this->password]
         );
+        $process->setTimeout(0); // 0 = no timeout
 
         $process->run();
 
@@ -113,6 +115,7 @@ class PostgresHelper
             env: ['PGPASSWORD' => $this->password]
         );
 
+        $process->setTimeout(0); // 0 = no timeout
         $process->run();
 
         return $process;
