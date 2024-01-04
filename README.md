@@ -4,6 +4,7 @@
 
 This package provides some tools to make working with postgres easier.
 It comes with a command to create a snapshot of your database and a command to restore a snapshot.
+We created this package to handle huge databases (+16GB).
 Big thanks to [Spatie](https://spatie.be) for their great packages, especially
 the [laravel-db-snapshots](https://github.com/spatie/laravel-db-snapshots) package, which we use to create snapshots.
 You can also create new databases, drop existing ones or clone them.
@@ -103,37 +104,37 @@ php artisan weslink:snapshot:create --exclude=posts --exclude=users
 After you've made some changes to the database, you can create another snapshot:
 
 ```bash
-php artisan snapshot:create my-second-dump
+php artisan weslink:snapshot:create my-second-dump
 ```
 
 To load a previous dump issue, this command:
 
 ```bash
-php artisan snapshot:load my-first-dump
+php artisan weslink:snapshot:load my-first-dump
 ```
 
 To load a previous dump to another DB connection (but the driver has to be pgsql):
 
 ```bash
-php artisan snapshot:load my-first-dump --connection=connectionName
+php artisan weslink:snapshot:load my-first-dump --connection=connectionName
 ```
 
 A dump can be deleted with:
 
 ```bash
-php artisan snapshot:delete my-first-dump
+php artisan weslink:snapshot:delete my-first-dump
 ```
 
 You can create new databases with:
 
 ```bash
-php artisan snapshot:database:create my-new-database
+php artisan weslink:database:create my-new-database
 ```
 
 And you can drop existing databases with:
 
 ```bash
-php artisan snapshot:database:drop my-old-database
+php artisan weslink:database:drop my-old-database
 ```
 
 > Note: This action is irreversible. It will drop the database, on production it will ask you for your confirmation.
@@ -141,7 +142,7 @@ php artisan snapshot:database:drop my-old-database
 It is also possible to clone an existing database with:
 
 ```bash
-php artisan snapshot:database:clone my-old-database my-new-database
+php artisan weslink:database:clone my-old-database my-new-database
 ```
 
 It will create a new database for you. If the new database already exists, it won't do anything.
