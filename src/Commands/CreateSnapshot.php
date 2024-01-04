@@ -8,6 +8,7 @@ use Spatie\DbSnapshots\Helpers\Format;
 use Spatie\DbSnapshots\Snapshot;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
+
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\table;
@@ -28,6 +29,7 @@ class CreateSnapshot extends Command
             PostgresHelper::createForConnection($connectionName);
         } catch (CannotCreateConnection $e) {
             error($e->getMessage());
+
             return;
         }
 

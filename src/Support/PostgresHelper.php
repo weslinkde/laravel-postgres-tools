@@ -30,7 +30,7 @@ class PostgresHelper
             throw CannotCreateConnection::connectionDoesNotExist($connectionName);
         }
 
-        if($dbConfig['driver'] !== 'pgsql') {
+        if ($dbConfig['driver'] !== 'pgsql') {
             throw CannotCreateConnection::driverNotSupported($dbConfig['driver']);
         }
 

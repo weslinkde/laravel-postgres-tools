@@ -4,6 +4,7 @@ namespace Weslinkde\PostgresTools\Commands;
 
 use Illuminate\Console\Command;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
+
 use function Laravel\Prompts\spin;
 
 class CloneDatabase extends Command
