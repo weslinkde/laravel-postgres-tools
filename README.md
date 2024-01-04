@@ -1,5 +1,4 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/weslinkde/laravel-postgres-tools.svg?style=flat-square)](https://packagist.org/packages/weslinkde/laravel-postgres-tools)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/weslinkde/laravel-postgres-tools/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/weslinkde/laravel-postgres-tools/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![GitHub Code Style Action Status](https://github.com/weslinkde/laravel-postgres-tools/actions/workflows/fix-php-code-style-issues.yml/badge.svg?branch=master)](https://github.com/weslinkde/laravel-postgres-tools/actions/workflows/fix-php-code-style-issues.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/weslinkde/laravel-postgres-tools.svg?style=flat-square)](https://packagist.org/packages/weslinkde/laravel-postgres-tools)
 
