@@ -8,7 +8,7 @@ use Symfony\Component\Process\Process;
 use Weslinkde\PostgresTools\PostgresSnapshot;
 use Weslinkde\PostgresTools\PostgresSnapshotRepository;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
-
+use function Laravel\Prompts\error;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 
@@ -24,10 +24,15 @@ class CreateDatabase extends Command
     {
         $newDatabaseName = $this->argument('name');
 
-        $connectionName = config('db-snapshots.default_connection')
+        $connectionName = config('postgres-tools.default_connection')
             ?? config('database.default');
 
-        $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($newDatabaseName);
+        try {
+            $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($newDatabaseName);
+        } catch (\Exception $e) {
+            error($e->getMessage());
+            return;
+        }
 
         /** @var Process|bool $result */
         $result = spin(fn () => $postgresHelper->createDatabase(), 'Creating new database...');

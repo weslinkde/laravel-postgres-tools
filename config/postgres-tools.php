@@ -10,17 +10,12 @@ return [
      * The connection to be used to create snapshots. Set this to null
      * to use the default configured in `config/databases.php`
      */
-    'default_connection' => null,
+    'default_connection' => 'pgsql',
 
     /*
      * The directory where temporary files will be stored.
      */
     'temporary_directory_path' => storage_path('app/laravel-db-snapshots/temp'),
-
-    /*
-     * Create dump files that are gzipped
-     */
-    'compress' => false,
 
     /*
      * Only these tables will be included in the snapshot. Set to `null` to include all tables.
@@ -36,5 +31,8 @@ return [
      */
     'exclude' => null,
 
+    /*
+     * These are the options that will be passed to `pg_dump`. See `man pg_dump` for more information.
+     */
     'addExtraOption' => '--no-owner --no-acl --no-privileges -Z 9 -Fc',
 ];

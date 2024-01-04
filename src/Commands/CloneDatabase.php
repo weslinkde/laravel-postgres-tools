@@ -4,7 +4,6 @@ namespace Weslinkde\PostgresTools\Commands;
 
 use Illuminate\Console\Command;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
-
 use function Laravel\Prompts\spin;
 
 class CloneDatabase extends Command
@@ -18,7 +17,7 @@ class CloneDatabase extends Command
         $databaseName = $this->argument('databaseName');
         $newDatabaseName = $this->argument('newDatabaseName');
 
-        $connectionName = config('db-snapshots.default_connection')
+        $connectionName = config('postgres-tools.default_connection')
             ?? config('database.default');
 
         $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($databaseName);

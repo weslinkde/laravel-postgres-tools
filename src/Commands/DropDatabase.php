@@ -8,7 +8,7 @@ use Symfony\Component\Process\Process;
 use Weslinkde\PostgresTools\PostgresSnapshot;
 use Weslinkde\PostgresTools\PostgresSnapshotRepository;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
-
+use function Laravel\Prompts\error;
 use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 
@@ -24,14 +24,19 @@ class DropDatabase extends Command
     {
         $databaseName = $this->argument('name');
 
-        $connectionName = config('db-snapshots.default_connection')
+        $connectionName = config('postgres-tools.default_connection')
             ?? config('database.default');
 
         if (! $this->confirmToProceed()) {
             return;
         }
 
-        $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($databaseName);
+        try {
+            $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($databaseName);
+        } catch (\Exception $e) {
+            error($e->getMessage());
+            return;
+        }
 
         /** @var Process|bool $result */
         $result = spin(fn () => $postgresHelper->dropDatabase(), 'Dropping database...');
