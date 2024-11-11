@@ -1,24 +1,25 @@
 <?php
 
-namespace Weslinkde\PostgresTools;
+namespace App\Aliases\weslinkde\LaravelPostgresTools\src;
 
+use Exception;
+use Spatie\DbSnapshots\Snapshot;
 use Spatie\DbSnapshots\Events\LoadedSnapshot;
 use Spatie\DbSnapshots\Events\LoadingSnapshot;
-use Spatie\DbSnapshots\Snapshot;
+use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
 use function Laravel\Prompts\spin;
 
 class PostgresSnapshot extends Snapshot
 {
-
     public function streamToLocalFile($sourceDisk, $sourcePath, $localFilePath)
     {
         // Open a read stream from the source disk
         $readStream = $sourceDisk->readStream($sourcePath);
 
         if ($readStream === false) {
-            throw new \Exception("Failed to open stream for {$sourcePath} on {$sourceDisk} disk.");
+            throw new Exception("Failed to open stream for {$sourcePath} on {$sourceDisk} disk.");
         }
 
         // Open a file handle for writing locally
@@ -26,11 +27,11 @@ class PostgresSnapshot extends Snapshot
 
         if ($localFile === false) {
             fclose($readStream); // Close the read stream if local file open fails
-            throw new \Exception("Failed to open local file {$localFilePath} for writing.");
+            throw new Exception("Failed to open local file {$localFilePath} for writing.");
         }
 
         // Write the contents from the read stream to the local file in chunks
-        while (!feof($readStream)) {
+        while (! feof($readStream)) {
             // Read a chunk of data and write it to the local file
             fwrite($localFile, fread($readStream, 8192));
         }
@@ -40,6 +41,10 @@ class PostgresSnapshot extends Snapshot
         fclose($localFile);
     }
 
+    /**
+     * @throws CannotCreateConnection
+     * @throws Exception
+     */
     public function load(?string $connectionName = null, bool $dropTables = true): void
     {
         event(new LoadingSnapshot($this));
@@ -58,13 +63,17 @@ class PostgresSnapshot extends Snapshot
         if ($isDiskLocal) {
             $dbDumpFilePath = $this->disk->path($this->fileName);
         } else {
-            $dbDumpFilePath = rtrim(config('db-snapshots.temporary_directory_path'), '/') . '/' . $this->fileName;
+            $dbDumpDirectory = rtrim(config('db-snapshots.temporary_directory_path'), '/') . '/';
+            $dbDumpFilePath = $dbDumpDirectory . $this->fileName;
+            if (! file_exists($dbDumpDirectory)) {
+                mkdir($dbDumpDirectory, 0777, true);
+            }
             $this->streamToLocalFile($this->disk, $this->fileName, $dbDumpFilePath);
         }
 
         spin(
             fn () => $postgresHelper->restoreSnapshot($dbDumpFilePath),
-            'Importing snapshot '.$this->name.'...'
+            'Importing snapshot ' . $this->name . '...'
         );
 
         if (! $isDiskLocal && file_exists($dbDumpFilePath)) {
