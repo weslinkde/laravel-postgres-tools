@@ -117,7 +117,7 @@ class PostgresHelper
         $jobs = config('postgres-tools.jobs', 1);
 
         $process = new Process(
-            command: ['pg_restore', '--jobs', $jobs ,'--host', $this->host, '--port', $this->port, '--username', $this->userName, '--no-owner', '--clean', '--role', $this->userName, '--dbname', $this->name, $filePath],
+            command: ['pg_restore', '--jobs', $jobs ,'--host', $this->host, '--port', $this->port, '--username', $this->userName, '--no-owner', '--clean', '--if-exists', '--role', $this->userName, '--dbname', $this->name, $filePath],
             env: ['PGPASSWORD' => $this->password]
         );
 
