@@ -3,6 +3,7 @@
 namespace Weslinkde\PostgresTools;
 
 use Illuminate\Support\Collection;
+use Spatie\DbSnapshots\Snapshot;
 use Spatie\DbSnapshots\SnapshotRepository;
 
 class PostgresSnapshotRepository extends SnapshotRepository
@@ -23,7 +24,7 @@ class PostgresSnapshotRepository extends SnapshotRepository
             ->sortByDesc(fn (PostgresSnapshot $snapshot) => $snapshot->createdAt()->toDateTimeString());
     }
 
-    public function findByName(string $name)
+    public function findByName(string $name): ?Snapshot
     {
         return $this->getAll()->first(fn (PostgresSnapshot $snapshot) => $snapshot->name === $name);
     }
