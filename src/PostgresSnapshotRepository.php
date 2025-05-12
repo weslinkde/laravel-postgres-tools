@@ -23,7 +23,7 @@ class PostgresSnapshotRepository extends SnapshotRepository
             ->sortByDesc(fn (PostgresSnapshot $snapshot) => $snapshot->createdAt()->toDateTimeString());
     }
 
-    public function findByName(string $name)
+        public function findByName(string $name): ?\Spatie\DbSnapshots\Snapshot
     {
         return $this->getAll()->first(fn (PostgresSnapshot $snapshot) => $snapshot->name === $name);
     }
