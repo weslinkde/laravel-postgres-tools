@@ -3,9 +3,9 @@
 namespace App\Aliases\weslinkde\LaravelPostgresTools\src;
 
 use Exception;
-use Spatie\DbSnapshots\Snapshot;
 use Spatie\DbSnapshots\Events\LoadedSnapshot;
 use Spatie\DbSnapshots\Events\LoadingSnapshot;
+use Spatie\DbSnapshots\Snapshot;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
@@ -63,8 +63,8 @@ class PostgresSnapshot extends Snapshot
         if ($isDiskLocal) {
             $dbDumpFilePath = $this->disk->path($this->fileName);
         } else {
-            $dbDumpDirectory = rtrim(config('db-snapshots.temporary_directory_path'), '/') . '/';
-            $dbDumpFilePath = $dbDumpDirectory . $this->fileName;
+            $dbDumpDirectory = rtrim(config('db-snapshots.temporary_directory_path'), '/').'/';
+            $dbDumpFilePath = $dbDumpDirectory.$this->fileName;
             if (! file_exists($dbDumpDirectory)) {
                 mkdir($dbDumpDirectory, 0777, true);
             }
@@ -73,7 +73,7 @@ class PostgresSnapshot extends Snapshot
 
         spin(
             fn () => $postgresHelper->restoreSnapshot($dbDumpFilePath),
-            'Importing snapshot ' . $this->name . '...'
+            'Importing snapshot '.$this->name.'...'
         );
 
         if (! $isDiskLocal && file_exists($dbDumpFilePath)) {
