@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Aliases\weslinkde\LaravelPostgresTools\src;
+namespace Weslinkde\PostgresTools;
 
 use Exception;
 use Spatie\DbSnapshots\Snapshot;
