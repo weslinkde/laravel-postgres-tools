@@ -2,6 +2,12 @@
 
 All notable changes to `laravel-postgres-tools` will be documented in this file.
 
+## v0.5.3 - 2025-10-13
+
+### Fixed
+- **CI/CD:** Fixed `nunomaduro/collision` requirement to `^7.0|^8.0` for PHP 8.1 compatibility in GitHub Actions
+- This resolves CI failures with PHP 8.1 environments
+
 ## v0.5.2 - 2025-10-13
 
 ### Changed
