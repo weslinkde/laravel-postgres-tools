@@ -33,11 +33,23 @@ return [
 
     /*
      * These are the options that will be passed to `pg_dump`. See `man pg_dump` for more information.
+     *
+     * Performance tips for large databases:
+     * - Use -Z 1 or -Z 3 instead of -Z 9 for faster compression (3-5x faster with minimal size difference)
+     * - -Fc format allows parallel restore with --jobs
+     * - For 16GB+ databases, consider using directory format (-Fd) with parallel dumps
      */
-    'addExtraOption' => '--no-owner --no-acl --no-privileges -Z 9 -Fc',
+    'addExtraOption' => env('PG_DUMP_OPTIONS', '--no-owner --no-acl --no-privileges -Z 3 -Fc'),
 
     /*
-     * The number jobs pg_restore should use to restore the snapshot.
+     * The number of jobs pg_restore should use to restore the snapshot.
+     *
+     * Recommended values:
+     * - Small DBs (<1GB): 1-2 jobs
+     * - Medium DBs (1-10GB): 4 jobs
+     * - Large DBs (10GB+): 4-8 jobs (CPU cores - 2)
+     *
+     * Note: Only works with custom format (-Fc) or directory format (-Fd)
      */
-    'jobs' => env('PG_RESTORE_JOBS', 1),
+    'jobs' => env('PG_RESTORE_JOBS', 4),
 ];

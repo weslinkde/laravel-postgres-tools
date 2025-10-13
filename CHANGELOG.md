@@ -2,6 +2,15 @@
 
 All notable changes to `laravel-postgres-tools` will be documented in this file.
 
+## v0.5.2 - 2025-10-13
+
+### Changed
+- **PERFORMANCE:** Improved default compression from `-Z 9` to `-Z 3` (3-5x faster with minimal size difference)
+- **PERFORMANCE:** Increased default restore jobs from 1 to 4 for faster restoration of large databases
+- Added environment variable support: `PG_DUMP_OPTIONS` and `PG_RESTORE_JOBS` for easy customization
+- Added comprehensive Performance Tuning section to README with recommendations for different database sizes
+- Improved `composer.json` syntax for `illuminate/contracts` requirement
+
 ## v0.5.1 - 2025-10-13
 
 ### Fixed

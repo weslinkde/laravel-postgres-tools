@@ -60,10 +60,45 @@ return [
     /*
      * These are the options that will be passed to `pg_dump`. See `man pg_dump` for more information.
      */
-    'addExtraOption' => '--no-owner --no-acl --no-privileges -Z 9 -Fc',
+    'addExtraOption' => env('PG_DUMP_OPTIONS', '--no-owner --no-acl --no-privileges -Z 3 -Fc'),
+
+    /*
+     * The number of jobs pg_restore should use to restore the snapshot.
+     */
+    'jobs' => env('PG_RESTORE_JOBS', 4),
 ];
 
 ```
+
+## Performance Tuning for Large Databases
+
+For databases larger than 16GB, consider these optimizations:
+
+### Compression Level (`-Z`)
+- **`-Z 9`** (Maximum): Slow, but smallest files (~5-10% smaller than Z1)
+- **`-Z 3`** (Recommended): 3-5x faster than Z9 with minimal size difference
+- **`-Z 1`** (Fast): Fastest compression, good for very large DBs
+
+```bash
+# Set in your .env file
+PG_DUMP_OPTIONS="--no-owner --no-acl --no-privileges -Z 1 -Fc"
+```
+
+### Parallel Restore Jobs
+The package supports parallel restoration using `pg_restore --jobs`:
+
+```bash
+# Set in your .env file
+PG_RESTORE_JOBS=8  # Use CPU cores - 2 for large databases
+```
+
+**Recommended values:**
+- Small DBs (<1GB): 1-2 jobs
+- Medium DBs (1-10GB): 4 jobs
+- Large DBs (10GB+): 4-8 jobs
+
+### Storage Considerations
+For cloud storage (S3, etc.), the package automatically streams files to local temp directory during restore to avoid memory issues.
 
 ## Usage
 
