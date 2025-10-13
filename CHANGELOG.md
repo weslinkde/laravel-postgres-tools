@@ -2,6 +2,18 @@
 
 All notable changes to `laravel-postgres-tools` will be documented in this file.
 
+## v0.5.4 - 2025-10-13
+
+### Fixed
+- **CI/CD:** Fixed test dependencies to support Laravel 10, 11, and 12
+  - Relaxed `pestphp/pest` to `^2.0|^3.0`
+  - Relaxed `pestphp/pest-plugin-laravel` to `^2.0|^3.0`
+  - Relaxed `pestphp/pest-plugin-arch` to `^2.0|^3.0`
+  - Relaxed `larastan/larastan` to `^2.0|^3.0`
+  - Relaxed `orchestra/testbench` to `^8.0|^9.0|^10.0`
+- **CI/CD:** Updated GitHub Actions test matrix to test Laravel 10.*, 11.*, and 12.*
+- This resolves "Your requirements could not be resolved" errors in CI/CD pipelines
+
 ## v0.5.3 - 2025-10-13
 
 ### Fixed
