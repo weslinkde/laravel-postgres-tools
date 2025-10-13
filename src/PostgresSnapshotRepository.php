@@ -23,7 +23,10 @@ class PostgresSnapshotRepository extends SnapshotRepository
 
                 return pathinfo($fileName, PATHINFO_EXTENSION) === 'sql';
             })
-            ->map(fn (string $fileName) => new PostgresSnapshot($this->disk, $fileName))
+            ->map(
+                /** @phpstan-ignore-next-line */
+                fn (string $fileName) => new PostgresSnapshot($this->disk, $fileName)
+            )
             ->sortByDesc(fn (PostgresSnapshot $snapshot) => $snapshot->createdAt()->toDateTimeString());
     }
 

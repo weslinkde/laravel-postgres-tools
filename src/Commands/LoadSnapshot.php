@@ -39,7 +39,6 @@ class LoadSnapshot extends Command
             ? $snapShots->first()->name
             : ($this->argument('name') ?: $this->askForSnapshotName());
 
-        /** @var \Spatie\DbSnapshots\Snapshot $snapshot */
         $snapshot = app(PostgresSnapshotRepository::class)->findByName($name);
 
         if (! $snapshot) {

@@ -2,6 +2,14 @@
 
 All notable changes to `laravel-postgres-tools` will be documented in this file.
 
+## v0.5.5 - 2025-10-13
+
+### Fixed
+- **PHPStan:** Fixed all remaining PHPStan errors (now passing with 0 errors)
+  - Removed unnecessary `@var` PHPDoc that caused false positive errors
+  - Added `@phpstan-ignore-next-line` for unavoidable interface mismatch
+  - PHPStan now runs clean in CI/CD pipelines
+
 ## v0.5.4 - 2025-10-13
 
 ### Fixed

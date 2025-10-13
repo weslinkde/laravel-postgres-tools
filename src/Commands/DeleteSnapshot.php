@@ -26,7 +26,6 @@ class DeleteSnapshot extends Command
 
         $name = $this->argument('name') ?: $this->askForSnapshotName();
 
-        /** @var \Spatie\DbSnapshots\Snapshot $snapshot */
         $snapshot = app(SnapshotRepository::class)->findByName($name);
         if (! $snapshot) {
             warning("Snapshot `{$name}` does not exist!");
