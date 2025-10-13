@@ -8,6 +8,9 @@ use Spatie\DbSnapshots\SnapshotRepository;
 
 class PostgresSnapshotRepository extends SnapshotRepository
 {
+    /**
+     * @return Collection<int, PostgresSnapshot>
+     */
     public function getAll(): Collection
     {
         return collect($this->disk->allFiles())

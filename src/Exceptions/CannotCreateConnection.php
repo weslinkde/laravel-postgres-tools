@@ -6,13 +6,13 @@ use Exception;
 
 class CannotCreateConnection extends Exception
 {
-    public static function driverNotSupported(string $driver): static
+    public static function driverNotSupported(string $driver): self
     {
-        return new static("Cannot create connection. Driver `{$driver}` is not supported. Only `pgsql` is supported.");
+        return new self("Cannot create connection. Driver `{$driver}` is not supported. Only `pgsql` is supported.");
     }
 
-    public static function connectionDoesNotExist(string $connectionName): static
+    public static function connectionDoesNotExist(string $connectionName): self
     {
-        return new static("Cannot create a dumper. Connection `{$connectionName}` does not exist.");
+        return new self("Cannot create a dumper. Connection `{$connectionName}` does not exist.");
     }
 }
