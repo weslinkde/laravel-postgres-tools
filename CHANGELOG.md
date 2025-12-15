@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.0.1...v1.0.2) (2025-12-15)
+
+### CI/CD
+
+* re-enable changelog auto-update in semantic-release ([de59526](https://github.com/weslinkde/laravel-postgres-tools/commit/de59526824bbec592625f32264bd4947840e0182))
+
 # Changelog
 
 All notable changes to `laravel-postgres-tools` will be documented in this file.
