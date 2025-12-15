@@ -17,7 +17,7 @@ class DeleteSnapshot extends Command
 
     protected $description = 'Delete a snapshot.';
 
-    public function handle()
+    public function handle(): void
     {
         if (app(PostgresSnapshotRepository::class)->getAll()->isEmpty()) {
             $this->warn('No snapshots found. Run `snapshot:create` to create snapshots.');

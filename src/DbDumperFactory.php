@@ -37,7 +37,7 @@ class DbDumperFactory
 
         $extraOptionsString = config('postgres-tools.addExtraOption', '');
         if (! empty($extraOptionsString)) {
-            $extraOptions = array_filter(explode(' ', $extraOptionsString));
+            $extraOptions = array_filter(explode(' ', (string) $extraOptionsString));
             foreach ($extraOptions as $option) {
                 $dbDumper->addExtraOption($option);
             }

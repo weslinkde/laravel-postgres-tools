@@ -13,13 +13,12 @@ class CloneDatabase extends Command
 
     protected $description = 'Clones a database.';
 
-    public function handle()
+    public function handle(): void
     {
         $databaseName = $this->argument('databaseName');
         $newDatabaseName = $this->argument('newDatabaseName');
 
-        $connectionName = config('postgres-tools.default_connection')
-            ?? config('database.default');
+        $connectionName = config('postgres-tools.default_connection', config('database.default'));
 
         $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($databaseName);
 
@@ -27,10 +26,10 @@ class CloneDatabase extends Command
         $snapshot = spin(fn () => $postgresHelper->createSnapshot('temp-snapshot'), 'Creating snapshot...');
         // Create a new database
         $postgresHelper->setName($newDatabaseName);
-        spin(fn () => $postgresHelper->createDatabase(), 'Creating new database...');
+        spin(fn (): \Symfony\Component\Process\Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
 
         // Load the snapshot into the new database
-        spin(fn () => $postgresHelper->restoreSnapshot($snapshot->disk->path($snapshot->fileName)), 'Loading snapshot...');
+        spin(fn (): \Symfony\Component\Process\Process => $postgresHelper->restoreSnapshot($snapshot->disk->path($snapshot->fileName)), 'Loading snapshot...');
 
         // Delete the snapshot
         $snapshot->delete();

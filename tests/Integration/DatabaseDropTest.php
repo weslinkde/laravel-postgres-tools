@@ -1,6 +1,6 @@
 <?php
 
-it('drops an existing database via command', function () {
+it('drops an existing database via command', function (): void {
     $dbName = $this->generateTestDatabaseName('drop_test');
 
     // Create database first
@@ -15,7 +15,7 @@ it('drops an existing database via command', function () {
     expect($this->databaseExists($dbName))->toBeFalse();
 });
 
-it('does not drop database if it does not exist', function () {
+it('does not drop database if it does not exist', function (): void {
     $dbName = 'non_existent_db_'.time();
 
     $this->artisan('weslink:database:drop', ['name' => $dbName])
@@ -23,7 +23,7 @@ it('does not drop database if it does not exist', function () {
         ->assertExitCode(0);
 });
 
-it('drops multiple databases sequentially', function () {
+it('drops multiple databases sequentially', function (): void {
     $dbName1 = $this->generateTestDatabaseName('multi_drop_1');
     $dbName2 = $this->generateTestDatabaseName('multi_drop_2');
 

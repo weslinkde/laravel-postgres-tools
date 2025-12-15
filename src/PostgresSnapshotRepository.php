@@ -27,7 +27,7 @@ class PostgresSnapshotRepository
     public function getAll(): Collection
     {
         return collect($this->disk->allFiles())
-            ->filter(function (string $fileName) {
+            ->filter(function (string $fileName): bool {
                 $pathinfo = pathinfo($fileName);
 
                 if (($pathinfo['extension'] ?? null) === 'gz') {
@@ -37,13 +37,13 @@ class PostgresSnapshotRepository
                 return pathinfo($fileName, PATHINFO_EXTENSION) === 'sql';
             })
             ->map(
-                fn (string $fileName) => new Snapshot($this->disk, $fileName)
+                fn (string $fileName): \Weslinkde\PostgresTools\Snapshot => new Snapshot($this->disk, $fileName)
             )
-            ->sortByDesc(fn (Snapshot $snapshot) => $snapshot->createdAt()->toDateTimeString());
+            ->sortByDesc(fn (Snapshot $snapshot): string => $snapshot->createdAt()->toDateTimeString());
     }
 
     public function findByName(string $name): ?Snapshot
     {
-        return $this->getAll()->first(fn (Snapshot $snapshot) => $snapshot->name === $name);
+        return $this->getAll()->first(fn (Snapshot $snapshot): bool => $snapshot->name === $name);
     }
 }

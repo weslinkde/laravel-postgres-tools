@@ -4,9 +4,9 @@ namespace Weslinkde\PostgresTools\Commands;
 
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
 use Weslinkde\PostgresTools\Snapshot;
 use Weslinkde\PostgresTools\Support\Format;
-use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
 use function Laravel\Prompts\error;
@@ -15,15 +15,14 @@ use function Laravel\Prompts\table;
 
 class CreateSnapshot extends Command
 {
-    protected $signature = 'weslink:snapshot:create {name?} {--connection=} {--compress} {--table=*} {--exclude=*}';
+    protected $signature = 'weslink:snapshot:create {name?} {--connection=} {--database=} {--compress} {--table=*} {--exclude=*}';
 
     protected $description = 'Create a new snapshot.';
 
-    public function handle()
+    public function handle(): void
     {
         $connectionName = $this->option('connection')
-            ?: config('postgres-tools.default_connection')
-            ?? config('database.default');
+            ?: config('postgres-tools.default_connection', config('database.default'));
 
         try {
             PostgresHelper::createForConnection($connectionName);
@@ -46,6 +45,10 @@ class CreateSnapshot extends Command
         }
 
         $postgresHelper = PostgresHelper::createForConnection($connectionName);
+
+        if ($database = $this->option('database')) {
+            $postgresHelper->setName($database);
+        }
 
         /** @var Snapshot $snapshot */
         $snapshot = spin(

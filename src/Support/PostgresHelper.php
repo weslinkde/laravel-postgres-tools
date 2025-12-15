@@ -55,13 +55,13 @@ class PostgresHelper
             ->setPassword($dbConfig['password'] ?? '');
 
         if (isset($dbConfig['port'])) {
-            $postgresHelper = $postgresHelper->setPort($dbConfig['port']);
+            return $postgresHelper->setPort($dbConfig['port']);
         }
 
         return $postgresHelper;
     }
 
-    public function createSnapshot(string $snapshotName, ?array $tables = null, ?array $exclude = null)
+    public function createSnapshot(string $snapshotName, ?array $tables = null, ?array $exclude = null): \Weslinkde\PostgresTools\Snapshot
     {
         $snapshotFactory = app(SnapshotFactory::class);
 
@@ -136,11 +136,57 @@ class PostgresHelper
         );
 
         $process->run();
-        if (str_contains($process->getOutput(), $databaseName)) {
-            return true;
+
+        return str_contains($process->getOutput(), $databaseName);
+    }
+
+    /**
+     * List all PostgreSQL databases with their owner and size.
+     *
+     * @return array<int, array{name: string, owner: string, size: int}>
+     */
+    public function listDatabases(): array
+    {
+        $sql = 'SELECT d.datname, r.rolname as owner, pg_database_size(d.datname) as size
+                FROM pg_catalog.pg_database d
+                JOIN pg_catalog.pg_roles r ON d.datdba = r.oid
+                WHERE d.datistemplate = false
+                ORDER BY d.datname';
+
+        $process = new Process(
+            command: [
+                'psql',
+                '--host', $this->host,
+                '--port', (string) $this->port,
+                '--username', $this->userName,
+                '--dbname', 'postgres',
+                '--tuples-only',
+                '--no-align',
+                '--field-separator', '|',
+                '--command', $sql,
+            ],
+            env: ['PGPASSWORD' => $this->password]
+        );
+        $process->setTimeout(0);
+        $process->run();
+
+        $output = trim($process->getOutput());
+        if ($output === '' || $output === '0') {
+            return [];
         }
 
-        return false;
+        return collect(explode("\n", $output))
+            ->filter()
+            ->map(function (string $line): array {
+                $parts = explode('|', $line);
+
+                return [
+                    'name' => trim($parts[0]),
+                    'owner' => trim($parts[1] ?? ''),
+                    'size' => (int) trim($parts[2] ?? '0'),
+                ];
+            })
+            ->toArray();
     }
 
     public function setConnection(string $connection): PostgresHelper
@@ -183,5 +229,174 @@ class PostgresHelper
         $this->userName = $userName;
 
         return $this;
+    }
+
+    /**
+     * Get database size information including total size and table sizes.
+     *
+     * @return array{database: string, total_size: int, tables: array<int, array{name: string, size: int, rows: int}>}
+     */
+    public function getDatabaseSize(): array
+    {
+        // Get total database size
+        $totalSizeSql = 'SELECT pg_database_size(current_database()) as size';
+
+        $process = new Process(
+            command: [
+                'psql',
+                '--host', $this->host,
+                '--port', (string) $this->port,
+                '--username', $this->userName,
+                '--dbname', $this->name,
+                '--tuples-only',
+                '--no-align',
+                '--command', $totalSizeSql,
+            ],
+            env: ['PGPASSWORD' => $this->password]
+        );
+        $process->setTimeout(0);
+        $process->run();
+
+        $totalSize = (int) trim($process->getOutput());
+
+        // Get table sizes
+        $tablesSql = "SELECT schemaname || '.' || relname as name,
+                             pg_total_relation_size(schemaname || '.' || relname) as size,
+                             n_live_tup as rows
+                      FROM pg_stat_user_tables
+                      ORDER BY pg_total_relation_size(schemaname || '.' || relname) DESC";
+
+        $process = new Process(
+            command: [
+                'psql',
+                '--host', $this->host,
+                '--port', (string) $this->port,
+                '--username', $this->userName,
+                '--dbname', $this->name,
+                '--tuples-only',
+                '--no-align',
+                '--field-separator', '|',
+                '--command', $tablesSql,
+            ],
+            env: ['PGPASSWORD' => $this->password]
+        );
+        $process->setTimeout(0);
+        $process->run();
+
+        $output = trim($process->getOutput());
+        $tables = [];
+
+        if ($output !== '' && $output !== '0') {
+            $tables = collect(explode("\n", $output))
+                ->filter()
+                ->map(function (string $line): array {
+                    $parts = explode('|', $line);
+
+                    return [
+                        'name' => trim($parts[0]),
+                        'size' => (int) trim($parts[1] ?? '0'),
+                        'rows' => (int) trim($parts[2] ?? '0'),
+                    ];
+                })
+                ->toArray();
+        }
+
+        return [
+            'database' => $this->name,
+            'total_size' => $totalSize,
+            'tables' => $tables,
+        ];
+    }
+
+    /**
+     * Run VACUUM ANALYZE on the database or specific tables.
+     *
+     * @param  array<string>|null  $tables  Specific tables to vacuum, or null for all
+     */
+    public function vacuumAnalyze(?array $tables = null): Process
+    {
+        if ($tables === null || $tables === []) {
+            $sql = 'VACUUM ANALYZE';
+        } else {
+            $tableList = implode(', ', array_map(fn ($t): string => '"'.str_replace('"', '""', $t).'"', $tables));
+            $sql = "VACUUM ANALYZE {$tableList}";
+        }
+
+        $process = new Process(
+            command: [
+                'psql',
+                '--host', $this->host,
+                '--port', (string) $this->port,
+                '--username', $this->userName,
+                '--dbname', $this->name,
+                '--command', $sql,
+            ],
+            env: ['PGPASSWORD' => $this->password]
+        );
+        $process->setTimeout(0);
+        $process->run();
+
+        return $process;
+    }
+
+    /**
+     * Dump only the database schema (no data).
+     */
+    public function dumpSchema(string $outputFile): Process
+    {
+        $process = new Process(
+            command: [
+                'pg_dump',
+                '--host', $this->host,
+                '--port', (string) $this->port,
+                '--username', $this->userName,
+                '--dbname', $this->name,
+                '--schema-only',
+                '--no-owner',
+                '--no-acl',
+                '--file', $outputFile,
+            ],
+            env: ['PGPASSWORD' => $this->password]
+        );
+        $process->setTimeout(0);
+        $process->run();
+
+        return $process;
+    }
+
+    /**
+     * Dump only the database data (no schema).
+     *
+     * @param  array<string>|null  $tables  Specific tables to dump, or null for all
+     */
+    public function dumpData(string $outputFile, ?array $tables = null): Process
+    {
+        $command = [
+            'pg_dump',
+            '--host', $this->host,
+            '--port', (string) $this->port,
+            '--username', $this->userName,
+            '--dbname', $this->name,
+            '--data-only',
+            '--no-owner',
+            '--no-acl',
+            '--file', $outputFile,
+        ];
+
+        if ($tables !== null && $tables !== []) {
+            foreach ($tables as $table) {
+                $command[] = '--table';
+                $command[] = $table;
+            }
+        }
+
+        $process = new Process(
+            command: $command,
+            env: ['PGPASSWORD' => $this->password]
+        );
+        $process->setTimeout(0);
+        $process->run();
+
+        return $process;
     }
 }

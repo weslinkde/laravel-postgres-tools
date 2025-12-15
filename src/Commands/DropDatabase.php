@@ -21,12 +21,11 @@ class DropDatabase extends Command
 
     protected $description = 'Drops a database.';
 
-    public function handle()
+    public function handle(): void
     {
         $databaseName = $this->argument('name');
 
-        $connectionName = config('postgres-tools.default_connection')
-            ?? config('database.default');
+        $connectionName = config('postgres-tools.default_connection', config('database.default'));
 
         if (! $this->confirmToProceed()) {
             return;
@@ -41,7 +40,7 @@ class DropDatabase extends Command
         }
 
         /** @var Process|bool $result */
-        $result = spin(fn () => $postgresHelper->dropDatabase(), 'Dropping database...');
+        $result = spin(fn (): \Symfony\Component\Process\Process|bool => $postgresHelper->dropDatabase(), 'Dropping database...');
 
         if ($result === false || ! $result->isSuccessful()) {
             $this->error('Failed to drop database.');
@@ -56,7 +55,7 @@ class DropDatabase extends Command
     {
         $snapShots = app(PostgresSnapshotRepository::class)->getAll();
 
-        $names = $snapShots->map(fn (Snapshot $snapshot) => $snapshot->name)
+        $names = $snapShots->map(fn (Snapshot $snapshot): string => $snapshot->name)
             ->values()->toArray();
 
         return select(

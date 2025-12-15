@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Storage;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
-it('creates a new database', function () {
+it('creates a new database', function (): void {
     $dbName = $this->generateTestDatabaseName('create');
     $helper = PostgresHelper::createForConnection('pgsql')
         ->setName($dbName);
@@ -16,7 +16,7 @@ it('creates a new database', function () {
         ->and($helper->checkIfDatabaseExists($dbName))->toBeTrue();
 });
 
-it('returns false when creating an already existing database', function () {
+it('returns false when creating an already existing database', function (): void {
     $dbName = $this->generateTestDatabaseName('existing');
     $helper = PostgresHelper::createForConnection('pgsql')
         ->setName($dbName);
@@ -30,7 +30,7 @@ it('returns false when creating an already existing database', function () {
     expect($process2)->toBeFalse();
 });
 
-it('drops an existing database', function () {
+it('drops an existing database', function (): void {
     $dbName = $this->generateTestDatabaseName('drop');
     $helper = PostgresHelper::createForConnection('pgsql')
         ->setName($dbName);
@@ -40,7 +40,7 @@ it('drops an existing database', function () {
     expect($helper->checkIfDatabaseExists($dbName))->toBeTrue();
 
     // Remove from tracking so afterEach doesn't try to drop it again
-    $this->testDatabases = array_filter($this->testDatabases, fn ($name) => $name !== $dbName);
+    $this->testDatabases = array_filter($this->testDatabases, fn ($name): bool => $name !== $dbName);
 
     // Drop the database
     $process = $helper->dropDatabase();
@@ -49,20 +49,20 @@ it('drops an existing database', function () {
         ->and($helper->checkIfDatabaseExists($dbName))->toBeFalse();
 });
 
-it('returns false when dropping a non-existent database', function () {
+it('returns false when dropping a non-existent database', function (): void {
     $dbName = $this->generateTestDatabaseName('nonexistent');
     $helper = PostgresHelper::createForConnection('pgsql')
         ->setName($dbName);
 
     // Remove from tracking as we won't create it
-    $this->testDatabases = array_filter($this->testDatabases, fn ($name) => $name !== $dbName);
+    $this->testDatabases = array_filter($this->testDatabases, fn ($name): bool => $name !== $dbName);
 
     $process = $helper->dropDatabase();
 
     expect($process)->toBeFalse();
 });
 
-it('checks if database exists', function () {
+it('checks if database exists', function (): void {
     $dbName = $this->generateTestDatabaseName('check');
     $helper = PostgresHelper::createForConnection('pgsql');
 
@@ -76,7 +76,7 @@ it('checks if database exists', function () {
     expect($helper->checkIfDatabaseExists($dbName))->toBeTrue();
 });
 
-it('throws exception for non-pgsql driver', function () {
+it('throws exception for non-pgsql driver', function (): void {
     config()->set('database.connections.sqlite', [
         'driver' => 'sqlite',
         'database' => ':memory:',
@@ -85,17 +85,17 @@ it('throws exception for non-pgsql driver', function () {
     PostgresHelper::createForConnection('sqlite');
 })->throws(CannotCreateConnection::class, 'Driver `sqlite` is not supported');
 
-it('throws exception for non-existent connection', function () {
+it('throws exception for non-existent connection', function (): void {
     PostgresHelper::createForConnection('nonexistent');
 })->throws(CannotCreateConnection::class, 'Connection `nonexistent` does not exist');
 
-it('creates helper with valid pgsql connection', function () {
+it('creates helper with valid pgsql connection', function (): void {
     $helper = PostgresHelper::createForConnection('pgsql');
 
     expect($helper)->toBeInstanceOf(PostgresHelper::class);
 });
 
-it('creates a snapshot using pg_dump', function () {
+it('creates a snapshot using pg_dump', function (): void {
     // Create a test table with data
     DB::statement('CREATE TABLE IF NOT EXISTS pg_dump_test (id SERIAL PRIMARY KEY, name VARCHAR(255))');
     DB::table('pg_dump_test')->insert(['name' => 'test_entry']);
@@ -114,7 +114,7 @@ it('creates a snapshot using pg_dump', function () {
     DB::statement('DROP TABLE IF EXISTS pg_dump_test');
 });
 
-it('creates snapshot with table filtering', function () {
+it('creates snapshot with table filtering', function (): void {
     // Create two test tables
     DB::statement('CREATE TABLE IF NOT EXISTS include_table (id SERIAL PRIMARY KEY, name VARCHAR(255))');
     DB::statement('CREATE TABLE IF NOT EXISTS exclude_table (id SERIAL PRIMARY KEY, name VARCHAR(255))');
@@ -136,7 +136,7 @@ it('creates snapshot with table filtering', function () {
     DB::statement('DROP TABLE IF EXISTS exclude_table');
 });
 
-it('restores a snapshot using pg_restore', function () {
+it('restores a snapshot using pg_restore', function (): void {
     // Setup: Create table and data
     DB::statement('CREATE TABLE IF NOT EXISTS pg_restore_test (id SERIAL PRIMARY KEY, name VARCHAR(255))');
     DB::table('pg_restore_test')->insert(['name' => 'restore_test_entry']);
@@ -166,7 +166,7 @@ it('restores a snapshot using pg_restore', function () {
     DB::statement('DROP TABLE IF EXISTS pg_restore_test');
 });
 
-it('can set connection properties via setters', function () {
+it('can set connection properties via setters', function (): void {
     $helper = PostgresHelper::createForConnection('pgsql')
         ->setHost('custom-host')
         ->setPort(5433)
@@ -177,7 +177,7 @@ it('can set connection properties via setters', function () {
     expect($helper)->toBeInstanceOf(PostgresHelper::class);
 });
 
-it('handles read replica configuration', function () {
+it('handles read replica configuration', function (): void {
     config()->set('database.connections.pgsql_with_replica', [
         'driver' => 'pgsql',
         'read' => [
@@ -198,7 +198,7 @@ it('handles read replica configuration', function () {
     expect($helper)->toBeInstanceOf(PostgresHelper::class);
 });
 
-it('handles connect_via_database configuration', function () {
+it('handles connect_via_database configuration', function (): void {
     config()->set('database.connections.pgsql_via', [
         'driver' => 'pgsql',
         'host' => '127.0.0.1',

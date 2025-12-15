@@ -17,28 +17,20 @@ use function Laravel\Prompts\spin;
 
 class Snapshot
 {
-    public Disk $disk;
-
-    public string $fileName;
-
     public string $name;
 
     public ?string $compressionExtension = null;
 
-    public function __construct(Disk $disk, string $fileName)
+    public function __construct(public Disk $disk, public string $fileName)
     {
-        $this->disk = $disk;
-
-        $this->fileName = $fileName;
-
-        $pathinfo = pathinfo($fileName);
+        $pathinfo = pathinfo($this->fileName);
 
         if (isset($pathinfo['extension']) && $pathinfo['extension'] === 'gz') {
             $this->compressionExtension = $pathinfo['extension'];
-            $fileName = $pathinfo['filename'];
+            $this->fileName = $pathinfo['filename'];
         }
 
-        $this->name = pathinfo($fileName, PATHINFO_FILENAME);
+        $this->name = pathinfo($this->fileName, PATHINFO_FILENAME);
     }
 
     /**
@@ -72,10 +64,14 @@ class Snapshot
     /**
      * Load the snapshot into the database using pg_restore.
      *
+     * @param  string|null  $connectionName  The database connection to use
+     * @param  bool  $dropTables  Whether to drop existing tables before loading
+     * @param  string|null  $database  Override the database name (useful for multi-tenancy)
+     *
      * @throws CannotCreateConnection
      * @throws Exception
      */
-    public function load(?string $connectionName = null, bool $dropTables = true): void
+    public function load(?string $connectionName = null, bool $dropTables = true, ?string $database = null): void
     {
         event(new LoadingSnapshot($this));
 
@@ -88,12 +84,17 @@ class Snapshot
         }
 
         $postgresHelper = PostgresHelper::createForConnection($connectionName);
+
+        if ($database !== null) {
+            $postgresHelper->setName($database);
+        }
+
         $isDiskLocal = $this->disk->getConfig()['driver'] === 'local';
 
         if ($isDiskLocal) {
             $dbDumpFilePath = $this->disk->path($this->fileName);
         } else {
-            $dbDumpDirectory = rtrim(config('postgres-tools.temporary_directory_path'), '/').'/';
+            $dbDumpDirectory = rtrim((string) config('postgres-tools.temporary_directory_path'), '/').'/';
             $dbDumpFilePath = $dbDumpDirectory.$this->fileName;
             if (! file_exists($dbDumpDirectory)) {
                 mkdir($dbDumpDirectory, 0777, true);
@@ -102,7 +103,7 @@ class Snapshot
         }
 
         spin(
-            fn () => $postgresHelper->restoreSnapshot($dbDumpFilePath),
+            fn (): \Symfony\Component\Process\Process => $postgresHelper->restoreSnapshot($dbDumpFilePath),
             'Importing snapshot '.$this->name.'...'
         );
 

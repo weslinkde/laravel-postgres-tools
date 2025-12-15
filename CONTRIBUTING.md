@@ -41,6 +41,39 @@ Before submitting a pull request:
 
 If the project maintainer has any additional requirements, you will find them listed here.
 
+- **Use Conventional Commits** - This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automatic versioning and changelog generation. Your commit messages must follow this format:
+
+  ```
+  <type>(<scope>): <description>
+
+  [optional body]
+
+  [optional footer(s)]
+  ```
+
+  **Types:**
+  | Type | Description | Version Bump |
+  |------|-------------|--------------|
+  | `feat` | New feature | Minor |
+  | `fix` | Bug fix | Patch |
+  | `perf` | Performance improvement | Patch |
+  | `refactor` | Code refactoring | Patch |
+  | `docs` | Documentation only | Patch |
+  | `style` | Code style (formatting) | Patch |
+  | `test` | Adding/updating tests | Patch |
+  | `build` | Build system changes | Patch |
+  | `ci` | CI/CD changes | Patch |
+  | `chore` | Maintenance (no release) | None |
+
+  **Breaking Changes:** Add `BREAKING CHANGE:` in the footer or `!` after the type for major version bumps.
+
+  **Examples:**
+  ```bash
+  feat(snapshots): add compression option
+  fix(restore): handle empty databases correctly
+  feat!: remove deprecated load() parameters
+  ```
+
 - [PSR-12 Coding Standard](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-12-extended-coding-style-guide.md) -
   The easiest way to apply the conventions is to
   install [PHP Code Sniffer](http://pear.php.net/package/PHP_CodeSniffer).

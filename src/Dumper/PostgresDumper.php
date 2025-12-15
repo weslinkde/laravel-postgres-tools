@@ -38,11 +38,6 @@ class PostgresDumper
     /** @var false|resource */
     private $tempFileHandle;
 
-    public function __construct()
-    {
-        $this->port = 5432;
-    }
-
     public static function create(): self
     {
         return new self;
@@ -113,7 +108,7 @@ class PostgresDumper
 
     public function includeTables(string|array $includeTables): self
     {
-        if (! empty($this->excludeTables)) {
+        if ($this->excludeTables !== []) {
             throw CannotSetParameter::conflictingParameters('includeTables', 'excludeTables');
         }
 
@@ -128,7 +123,7 @@ class PostgresDumper
 
     public function excludeTables(string|array $excludeTables): self
     {
-        if (! empty($this->includeTables)) {
+        if ($this->includeTables !== []) {
             throw CannotSetParameter::conflictingParameters('excludeTables', 'includeTables');
         }
 
@@ -143,7 +138,7 @@ class PostgresDumper
 
     public function addExtraOption(string $extraOption): self
     {
-        if (! empty($extraOption)) {
+        if ($extraOption !== '' && $extraOption !== '0') {
             $this->extraOptions[] = $extraOption;
         }
 
@@ -212,11 +207,11 @@ class PostgresDumper
             $command[] = $extraOption;
         }
 
-        if (! empty($this->includeTables)) {
+        if ($this->includeTables !== []) {
             $command[] = '-t '.implode(' -t ', $this->includeTables);
         }
 
-        if (! empty($this->excludeTables)) {
+        if ($this->excludeTables !== []) {
             $command[] = '-T '.implode(' -T ', $this->excludeTables);
         }
 
@@ -239,9 +234,8 @@ class PostgresDumper
     protected function escapeCredentialEntry(string $entry): string
     {
         $entry = str_replace('\\', '\\\\', $entry);
-        $entry = str_replace(':', '\\:', $entry);
 
-        return $entry;
+        return str_replace(':', '\\:', $entry);
     }
 
     public function guardAgainstIncompleteCredentials(): void

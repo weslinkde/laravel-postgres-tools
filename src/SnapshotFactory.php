@@ -27,7 +27,6 @@ class SnapshotFactory
      * @param  bool  $compress  Whether to compress the snapshot (not used for PostgreSQL custom format)
      * @param  array|null  $tables  Tables to include in the snapshot
      * @param  array|null  $exclude  Tables to exclude from the snapshot
-     * @return Snapshot
      */
     public function create(
         string $snapshotName,
@@ -39,7 +38,7 @@ class SnapshotFactory
     ): Snapshot {
         $disk = $this->getDisk($diskName);
 
-        $fileName = $snapshotName . '.sql';
+        $fileName = $snapshotName.'.sql';
         $fileName = pathinfo($fileName, PATHINFO_BASENAME);
 
         $extraOptions = $this->getExtraOptions();
@@ -121,7 +120,7 @@ class SnapshotFactory
             return [];
         }
 
-        return array_filter(explode(' ', $extraOptionsString));
+        return array_filter(explode(' ', (string) $extraOptionsString));
     }
 
     /**

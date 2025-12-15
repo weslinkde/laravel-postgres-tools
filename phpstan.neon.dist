@@ -9,5 +9,8 @@ parameters:
     tmpDir: build/phpstan
     checkOctaneCompatibility: true
     checkModelProperties: true
-    checkMissingIterableValueType: false
+    ignoreErrors:
+        # Config files are in the config directory, env() is valid here
+        - identifier: larastan.noEnvCallsOutsideOfConfig
+          path: config/*
 

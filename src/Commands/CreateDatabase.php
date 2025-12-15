@@ -21,12 +21,11 @@ class CreateDatabase extends Command
 
     protected $description = 'Creates a database.';
 
-    public function handle()
+    public function handle(): void
     {
         $newDatabaseName = $this->argument('name');
 
-        $connectionName = config('postgres-tools.default_connection')
-            ?? config('database.default');
+        $connectionName = config('postgres-tools.default_connection', config('database.default'));
 
         try {
             $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($newDatabaseName);
@@ -37,7 +36,7 @@ class CreateDatabase extends Command
         }
 
         /** @var Process|bool $result */
-        $result = spin(fn () => $postgresHelper->createDatabase(), 'Creating new database...');
+        $result = spin(fn (): \Symfony\Component\Process\Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
 
         if ($result === false || ! $result->isSuccessful()) {
             $this->error('Failed to create database.');
@@ -52,7 +51,7 @@ class CreateDatabase extends Command
     {
         $snapShots = app(PostgresSnapshotRepository::class)->getAll();
 
-        $names = $snapShots->map(fn (Snapshot $snapshot) => $snapshot->name)
+        $names = $snapShots->map(fn (Snapshot $snapshot): string => $snapshot->name)
             ->values()->toArray();
 
         return select(

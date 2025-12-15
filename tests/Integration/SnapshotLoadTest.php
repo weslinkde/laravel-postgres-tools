@@ -2,18 +2,18 @@
 
 use Illuminate\Support\Facades\DB;
 
-beforeEach(function () {
+beforeEach(function (): void {
     // Setup test table with data
     DB::statement('CREATE TABLE IF NOT EXISTS snapshot_test (id SERIAL PRIMARY KEY, data TEXT)');
     DB::table('snapshot_test')->insert(['data' => 'original_data']);
 });
 
-afterEach(function () {
+afterEach(function (): void {
     // Cleanup test table
     DB::statement('DROP TABLE IF EXISTS snapshot_test');
 });
 
-it('loads a snapshot and restores data', function () {
+it('loads a snapshot and restores data', function (): void {
     $snapshotName = $this->generateTestSnapshotName('load_test');
 
     // Create a snapshot
@@ -37,7 +37,7 @@ it('loads a snapshot and restores data', function () {
     expect($result)->not->toBeNull();
 });
 
-it('loads the latest snapshot when --latest flag is used', function () {
+it('loads the latest snapshot when --latest flag is used', function (): void {
     $snapshot1 = $this->generateTestSnapshotName('older');
     $snapshot2 = $this->generateTestSnapshotName('latest');
 
@@ -67,13 +67,13 @@ it('loads the latest snapshot when --latest flag is used', function () {
     expect($result)->not->toBeNull();
 });
 
-it('displays warning when no snapshots exist', function () {
+it('displays warning when no snapshots exist', function (): void {
     $this->artisan('weslink:snapshot:load')
         ->expectsOutput('No snapshots found. Run `snapshot:create` first to create snapshots.')
         ->assertExitCode(0);
 });
 
-it('displays warning when specified snapshot does not exist', function () {
+it('displays warning when specified snapshot does not exist', function (): void {
     $nonExistentSnapshot = 'non_existent_snapshot';
 
     // Create at least one snapshot so the command proceeds
@@ -89,7 +89,7 @@ it('displays warning when specified snapshot does not exist', function () {
         ->assertExitCode(0);
 });
 
-it('loads snapshot with custom connection', function () {
+it('loads snapshot with custom connection', function (): void {
     $snapshotName = $this->generateTestSnapshotName('custom_conn');
 
     // Create snapshot
@@ -113,7 +113,7 @@ it('loads snapshot with custom connection', function () {
     expect($result)->not->toBeNull();
 });
 
-it('loads snapshot without dropping tables when --drop-tables=0', function () {
+it('loads snapshot without dropping tables when --drop-tables=0', function (): void {
     $snapshotName = $this->generateTestSnapshotName('no_drop');
 
     // Create initial data
@@ -139,7 +139,7 @@ it('loads snapshot without dropping tables when --drop-tables=0', function () {
     expect(DB::table('snapshot_test')->count())->toBeGreaterThan(0);
 });
 
-it('respects --force flag to skip confirmation', function () {
+it('respects --force flag to skip confirmation', function (): void {
     $snapshotName = $this->generateTestSnapshotName('force_flag');
 
     // Create snapshot

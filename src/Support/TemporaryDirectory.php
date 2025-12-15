@@ -18,11 +18,11 @@ class TemporaryDirectory
 
     public function create(): self
     {
-        if (empty($this->location)) {
+        if ($this->location === '' || $this->location === '0') {
             $this->location = $this->getSystemTemporaryDirectory();
         }
 
-        if (empty($this->name)) {
+        if ($this->name === '' || $this->name === '0') {
             $this->name = mt_rand().'-'.str_replace([' ', '.'], '', microtime());
         }
 
@@ -35,7 +35,7 @@ class TemporaryDirectory
 
     public function path(string $pathOrFilename = ''): string
     {
-        if (empty($pathOrFilename)) {
+        if ($pathOrFilename === '' || $pathOrFilename === '0') {
             return $this->getFullPath();
         }
 
@@ -57,7 +57,7 @@ class TemporaryDirectory
 
     protected function getFullPath(): string
     {
-        return $this->location.(! empty($this->name) ? DIRECTORY_SEPARATOR.$this->name : '');
+        return $this->location.($this->name === '' || $this->name === '0' ? '' : DIRECTORY_SEPARATOR.$this->name);
     }
 
     protected function getSystemTemporaryDirectory(): string

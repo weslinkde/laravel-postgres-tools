@@ -13,7 +13,7 @@ trait AsksForSnapshotName
     {
         $snapShots = app(PostgresSnapshotRepository::class)->getAll();
 
-        $names = $snapShots->map(fn (Snapshot $snapshot) => $snapshot->name)
+        $names = $snapShots->map(fn (Snapshot $snapshot): string => $snapshot->name)
             ->values()->toArray();
 
         return select(

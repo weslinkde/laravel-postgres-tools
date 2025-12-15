@@ -15,11 +15,11 @@ class LoadSnapshot extends Command
     use AsksForSnapshotName;
     use ConfirmableTrait;
 
-    protected $signature = 'weslink:snapshot:load {name?} {--connection=} {--force} --disk {--latest} {--drop-tables=1}';
+    protected $signature = 'weslink:snapshot:load {name?} {--connection=} {--database=} {--force} --disk {--latest} {--drop-tables=1}';
 
     protected $description = 'Load up a snapshot.';
 
-    public function handle()
+    public function handle(): void
     {
         $snapShots = app(PostgresSnapshotRepository::class)->getAll();
 
@@ -47,7 +47,11 @@ class LoadSnapshot extends Command
             return;
         }
 
-        $snapshot->load($this->option('connection'), (bool) $this->option('drop-tables'));
+        $snapshot->load(
+            $this->option('connection'),
+            (bool) $this->option('drop-tables'),
+            $this->option('database')
+        );
 
         $this->info("Snapshot `{$name}` loaded!");
     }
@@ -56,7 +60,7 @@ class LoadSnapshot extends Command
     {
         $snapShots = app(PostgresSnapshotRepository::class)->getAll();
 
-        $names = $snapShots->map(fn (Snapshot $snapshot) => $snapshot->name)
+        $names = $snapShots->map(fn (Snapshot $snapshot): string => $snapshot->name)
             ->values()->toArray();
 
         return select(

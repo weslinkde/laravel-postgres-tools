@@ -2,18 +2,18 @@
 
 use Illuminate\Support\Facades\DB;
 
-beforeEach(function () {
+beforeEach(function (): void {
     // Setup test table for creating snapshots
     DB::statement('CREATE TABLE IF NOT EXISTS snapshot_test (id SERIAL PRIMARY KEY, data TEXT)');
     DB::table('snapshot_test')->insert(['data' => 'test_data']);
 });
 
-afterEach(function () {
+afterEach(function (): void {
     // Cleanup test table
     DB::statement('DROP TABLE IF EXISTS snapshot_test');
 });
 
-it('deletes an existing snapshot', function () {
+it('deletes an existing snapshot', function (): void {
     $snapshotName = $this->generateTestSnapshotName('delete_test');
 
     // Create a snapshot
@@ -31,13 +31,13 @@ it('deletes an existing snapshot', function () {
     expect($this->snapshotExists($snapshotName))->toBeFalse();
 });
 
-it('displays warning when no snapshots exist', function () {
+it('displays warning when no snapshots exist', function (): void {
     $this->artisan('weslink:snapshot:delete')
         ->expectsOutput('No snapshots found. Run `snapshot:create` to create snapshots.')
         ->assertExitCode(0);
 });
 
-it('handles deleting non-existent snapshot gracefully', function () {
+it('handles deleting non-existent snapshot gracefully', function (): void {
     $nonExistentSnapshot = 'non_existent_snapshot';
 
     // Create at least one snapshot so command proceeds past empty check
@@ -53,7 +53,7 @@ it('handles deleting non-existent snapshot gracefully', function () {
     expect($this->snapshotExists($existingSnapshot))->toBeTrue();
 });
 
-it('deletes multiple snapshots sequentially', function () {
+it('deletes multiple snapshots sequentially', function (): void {
     $snapshot1 = $this->generateTestSnapshotName('multi_1');
     $snapshot2 = $this->generateTestSnapshotName('multi_2');
 

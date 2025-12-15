@@ -2,18 +2,18 @@
 
 use Illuminate\Support\Facades\DB;
 
-beforeEach(function () {
+beforeEach(function (): void {
     // Setup source database with test data
     DB::statement('CREATE TABLE IF NOT EXISTS clone_test (id SERIAL PRIMARY KEY, data TEXT)');
     DB::table('clone_test')->insert(['data' => 'original_data_'.time()]);
 });
 
-afterEach(function () {
+afterEach(function (): void {
     // Cleanup source database table
     DB::statement('DROP TABLE IF EXISTS clone_test');
 });
 
-it('clones a database with all its data', function () {
+it('clones a database with all its data', function (): void {
     $sourceDbName = config('database.connections.pgsql.database');
     $targetDbName = $this->generateTestDatabaseName('clone_target');
 
@@ -38,7 +38,7 @@ it('clones a database with all its data', function () {
     expect($result->data)->toContain('original_data');
 });
 
-it('clones a database and both databases remain independent', function () {
+it('clones a database and both databases remain independent', function (): void {
     $sourceDbName = config('database.connections.pgsql.database');
     $targetDbName = $this->generateTestDatabaseName('independent_clone');
 
@@ -64,7 +64,7 @@ it('clones a database and both databases remain independent', function () {
     expect(DB::connection('temp_clone')->table('clone_test')->where('data', 'source_only_data')->exists())->toBeFalse();
 });
 
-it('creates temporary snapshot during clone and cleans it up', function () {
+it('creates temporary snapshot during clone and cleans it up', function (): void {
     $sourceDbName = config('database.connections.pgsql.database');
     $targetDbName = $this->generateTestDatabaseName('temp_snapshot_cleanup');
 
@@ -84,7 +84,7 @@ it('creates temporary snapshot during clone and cleans it up', function () {
     expect(count($finalSnapshots))->toBe(count($initialSnapshots));
 });
 
-it('clones database with multiple tables', function () {
+it('clones database with multiple tables', function (): void {
     // Create additional tables
     DB::statement('CREATE TABLE IF NOT EXISTS clone_test_2 (id SERIAL PRIMARY KEY, name TEXT)');
     DB::table('clone_test_2')->insert(['name' => 'test_name']);
@@ -116,7 +116,7 @@ it('clones database with multiple tables', function () {
     DB::statement('DROP TABLE IF EXISTS clone_test_3');
 });
 
-it('clones empty database', function () {
+it('clones empty database', function (): void {
     // Create an empty database to clone
     $emptySourceDb = $this->generateTestDatabaseName('empty_source');
     $this->createTestDatabase($emptySourceDb);

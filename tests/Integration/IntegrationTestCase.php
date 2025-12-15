@@ -45,7 +45,7 @@ abstract class IntegrationTestCase extends TestCase
             DB::connection('pgsql')->getPdo();
 
             return true;
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return false;
         }
     }
@@ -71,7 +71,7 @@ abstract class IntegrationTestCase extends TestCase
             PostgresHelper::createForConnection('pgsql')
                 ->setName($name)
                 ->dropDatabase();
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             // Ignore if database doesn't exist
         }
     }
@@ -98,11 +98,11 @@ abstract class IntegrationTestCase extends TestCase
             $disk = Storage::disk('snapshots');
             $files = $disk->files();
             foreach ($files as $file) {
-                if (str_starts_with(basename($file), $name)) {
+                if (str_starts_with(basename((string) $file), $name)) {
                     $disk->delete($file);
                 }
             }
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             // Ignore if snapshot doesn't exist
         }
     }

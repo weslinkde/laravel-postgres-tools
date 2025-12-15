@@ -3,18 +3,18 @@
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
-beforeEach(function () {
+beforeEach(function (): void {
     // Setup test table with data
     DB::statement('CREATE TABLE IF NOT EXISTS snapshot_test (id SERIAL PRIMARY KEY, data TEXT)');
     DB::table('snapshot_test')->insert(['data' => 'test_data_'.time()]);
 });
 
-afterEach(function () {
+afterEach(function (): void {
     // Cleanup test table
     DB::statement('DROP TABLE IF EXISTS snapshot_test');
 });
 
-it('creates a snapshot of the database', function () {
+it('creates a snapshot of the database', function (): void {
     $snapshotName = $this->generateTestSnapshotName('create_snapshot');
 
     $this->artisan('weslink:snapshot:create', ['name' => $snapshotName])
@@ -24,7 +24,7 @@ it('creates a snapshot of the database', function () {
     expect($this->snapshotExists($snapshotName))->toBeTrue();
 });
 
-it('creates a snapshot with auto-generated name when no name provided', function () {
+it('creates a snapshot with auto-generated name when no name provided', function (): void {
     $this->artisan('weslink:snapshot:create')
         ->assertExitCode(0);
 
@@ -38,7 +38,7 @@ it('creates a snapshot with auto-generated name when no name provided', function
     }
 });
 
-it('creates a snapshot with specific tables using --table option', function () {
+it('creates a snapshot with specific tables using --table option', function (): void {
     // Create another test table
     DB::statement('CREATE TABLE IF NOT EXISTS another_table (id SERIAL PRIMARY KEY, name TEXT)');
     DB::table('another_table')->insert(['name' => 'test']);
@@ -57,7 +57,7 @@ it('creates a snapshot with specific tables using --table option', function () {
     DB::statement('DROP TABLE IF EXISTS another_table');
 });
 
-it('creates a snapshot excluding specific tables using --exclude option', function () {
+it('creates a snapshot excluding specific tables using --exclude option', function (): void {
     // Create another test table
     DB::statement('CREATE TABLE IF NOT EXISTS exclude_table (id SERIAL PRIMARY KEY, name TEXT)');
     DB::table('exclude_table')->insert(['name' => 'test']);
@@ -76,7 +76,7 @@ it('creates a snapshot excluding specific tables using --exclude option', functi
     DB::statement('DROP TABLE IF EXISTS exclude_table');
 });
 
-it('creates a snapshot with custom connection', function () {
+it('creates a snapshot with custom connection', function (): void {
     $snapshotName = $this->generateTestSnapshotName('custom_connection');
 
     $this->artisan('weslink:snapshot:create', [
@@ -88,7 +88,7 @@ it('creates a snapshot with custom connection', function () {
     expect($this->snapshotExists($snapshotName))->toBeTrue();
 });
 
-it('fails when using invalid connection', function () {
+it('fails when using invalid connection', function (): void {
     $this->artisan('weslink:snapshot:create', [
         'name' => 'test',
         '--connection' => 'invalid_connection',
