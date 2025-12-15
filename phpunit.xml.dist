@@ -16,8 +16,13 @@
     backupStaticProperties="false"
 >
     <testsuites>
-        <testsuite name="Weslinkde Test Suite">
-            <directory>tests</directory>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+            <file>tests/ArchTest.php</file>
+            <file>tests/ExampleTest.php</file>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
         </testsuite>
     </testsuites>
     <coverage>

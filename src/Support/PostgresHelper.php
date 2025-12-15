@@ -3,10 +3,9 @@
 namespace Weslinkde\PostgresTools\Support;
 
 use Illuminate\Support\Arr;
-use Spatie\DbSnapshots\SnapshotFactory;
 use Symfony\Component\Process\Process;
-use Weslinkde\PostgresTools\DbDumperFactory;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
+use Weslinkde\PostgresTools\SnapshotFactory;
 
 class PostgresHelper
 {
@@ -64,7 +63,7 @@ class PostgresHelper
 
     public function createSnapshot(string $snapshotName, ?array $tables = null, ?array $exclude = null)
     {
-        $snapshotFactory = app(SnapshotFactory::class, ['dumperFactory' => new DbDumperFactory]);
+        $snapshotFactory = app(SnapshotFactory::class);
 
         return $snapshotFactory->create(
             $snapshotName,

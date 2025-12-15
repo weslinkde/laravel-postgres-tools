@@ -5,8 +5,8 @@ namespace Weslinkde\PostgresTools\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Console\ConfirmableTrait;
 use Weslinkde\PostgresTools\Commands\Concerns\AsksForSnapshotName;
-use Weslinkde\PostgresTools\PostgresSnapshot;
 use Weslinkde\PostgresTools\PostgresSnapshotRepository;
+use Weslinkde\PostgresTools\Snapshot;
 
 use function Laravel\Prompts\select;
 
@@ -56,7 +56,7 @@ class LoadSnapshot extends Command
     {
         $snapShots = app(PostgresSnapshotRepository::class)->getAll();
 
-        $names = $snapShots->map(fn (PostgresSnapshot $snapshot) => $snapshot->name)
+        $names = $snapShots->map(fn (Snapshot $snapshot) => $snapshot->name)
             ->values()->toArray();
 
         return select(

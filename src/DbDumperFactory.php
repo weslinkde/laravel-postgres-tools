@@ -2,14 +2,46 @@
 
 namespace Weslinkde\PostgresTools;
 
-use Spatie\DbDumper\DbDumper;
+use Weslinkde\PostgresTools\Dumper\PostgresDumper;
 
-class DbDumperFactory extends \Spatie\DbSnapshots\DbDumperFactory
+class DbDumperFactory
 {
-    public static function createForConnection(string $connectionName): DbDumper
+    /**
+     * Create a PostgreSQL dumper for the given connection.
+     */
+    public static function createForConnection(string $connectionName): PostgresDumper
     {
-        $dbDumper = parent::createForConnection($connectionName);
-        $dbDumper->addExtraOption(config('postgres-tools.addExtraOption', []));
+        $dbConfig = config("database.connections.{$connectionName}");
+
+        if (is_null($dbConfig)) {
+            throw new \RuntimeException("Connection [{$connectionName}] does not exist.");
+        }
+
+        if ($dbConfig['driver'] !== 'pgsql') {
+            throw new \RuntimeException("Driver [{$dbConfig['driver']}] is not supported. Only PostgreSQL is supported.");
+        }
+
+        $fallback = $dbConfig['read']['host'] ?? $dbConfig['host'];
+        $dbHost = $dbConfig['read']['host'][0] ?? $fallback;
+        $dbName = $dbConfig['connect_via_database'] ?? $dbConfig['database'];
+
+        $dbDumper = PostgresDumper::create()
+            ->setHost($dbHost ?? '')
+            ->setDbName($dbName)
+            ->setUserName($dbConfig['username'] ?? '')
+            ->setPassword($dbConfig['password'] ?? '');
+
+        if (isset($dbConfig['port'])) {
+            $dbDumper->setPort($dbConfig['port']);
+        }
+
+        $extraOptionsString = config('postgres-tools.addExtraOption', '');
+        if (! empty($extraOptionsString)) {
+            $extraOptions = array_filter(explode(' ', $extraOptionsString));
+            foreach ($extraOptions as $option) {
+                $dbDumper->addExtraOption($option);
+            }
+        }
 
         return $dbDumper;
     }

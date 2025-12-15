@@ -4,8 +4,8 @@ namespace Weslinkde\PostgresTools\Commands;
 
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Spatie\DbSnapshots\Helpers\Format;
-use Spatie\DbSnapshots\Snapshot;
+use Weslinkde\PostgresTools\Snapshot;
+use Weslinkde\PostgresTools\Support\Format;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 

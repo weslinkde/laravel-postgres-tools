@@ -3,8 +3,7 @@
 namespace Weslinkde\PostgresTools;
 
 use Illuminate\Contracts\Filesystem\Factory;
-use Spatie\LaravelPackageTools\Package;
-use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Illuminate\Support\ServiceProvider;
 use Weslinkde\PostgresTools\Commands\CloneDatabase;
 use Weslinkde\PostgresTools\Commands\CreateDatabase;
 use Weslinkde\PostgresTools\Commands\CreateSnapshot;
@@ -12,36 +11,16 @@ use Weslinkde\PostgresTools\Commands\DeleteSnapshot;
 use Weslinkde\PostgresTools\Commands\DropDatabase;
 use Weslinkde\PostgresTools\Commands\LoadSnapshot;
 
-class PostgresToolsServiceProvider extends PackageServiceProvider
+class PostgresToolsServiceProvider extends ServiceProvider
 {
-    public function configurePackage(Package $package): void
+    public function register(): void
     {
-        /*
-         * This class is a Package Service Provider
-         *
-         * More info: https://github.com/weslinkde/laravel-package-tools
-         */
-        $package
-            ->name('laravel-postgres-tools')
-            ->hasConfigFile()
-            ->hasCommands([
-                'command.weslink.snapshot:create',
-                'command.weslink.snapshot:load',
-                'command.weslink.snapshot:delete',
-                'command.weslink.database:create',
-                'command.weslink.database:drop',
-                'command.weslink.database:clone',
-            ]);
-    }
+        $this->mergeConfigFrom(__DIR__.'/../config/postgres-tools.php', 'postgres-tools');
 
-    public function bootingPackage()
-    {
         $this->app->bind(PostgresSnapshotRepository::class, function () {
             $diskName = config('postgres-tools.disk');
 
-            $disk = app(Factory::class)->disk($diskName);
-
-            return new PostgresSnapshotRepository($disk);
+            return new PostgresSnapshotRepository(app(Factory::class), $diskName);
         });
 
         $this->app->bind('command.weslink.snapshot:create', CreateSnapshot::class);
@@ -50,5 +29,23 @@ class PostgresToolsServiceProvider extends PackageServiceProvider
         $this->app->bind('command.weslink.database:create', CreateDatabase::class);
         $this->app->bind('command.weslink.database:drop', DropDatabase::class);
         $this->app->bind('command.weslink.database:clone', CloneDatabase::class);
+    }
+
+    public function boot(): void
+    {
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__.'/../config/postgres-tools.php' => config_path('postgres-tools.php'),
+            ], 'postgres-tools-config');
+
+            $this->commands([
+                CreateSnapshot::class,
+                LoadSnapshot::class,
+                DeleteSnapshot::class,
+                CreateDatabase::class,
+                DropDatabase::class,
+                CloneDatabase::class,
+            ]);
+        }
     }
 }

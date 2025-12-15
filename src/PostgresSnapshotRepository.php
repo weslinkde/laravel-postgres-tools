@@ -2,14 +2,27 @@
 
 namespace Weslinkde\PostgresTools;
 
+use Illuminate\Contracts\Filesystem\Factory;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Collection;
-use Spatie\DbSnapshots\Snapshot;
-use Spatie\DbSnapshots\SnapshotRepository;
 
-class PostgresSnapshotRepository extends SnapshotRepository
+class PostgresSnapshotRepository
 {
+    protected FilesystemAdapter $disk;
+
+    public function __construct(Factory $filesystemFactory, string $diskName)
+    {
+        $disk = $filesystemFactory->disk($diskName);
+
+        if (! $disk instanceof FilesystemAdapter) {
+            throw new \RuntimeException("Disk {$diskName} is not a FilesystemAdapter instance.");
+        }
+
+        $this->disk = $disk;
+    }
+
     /**
-     * @return Collection<int, PostgresSnapshot>
+     * @return Collection<int, Snapshot>
      */
     public function getAll(): Collection
     {
@@ -24,14 +37,13 @@ class PostgresSnapshotRepository extends SnapshotRepository
                 return pathinfo($fileName, PATHINFO_EXTENSION) === 'sql';
             })
             ->map(
-                /** @phpstan-ignore-next-line */
-                fn (string $fileName) => new PostgresSnapshot($this->disk, $fileName)
+                fn (string $fileName) => new Snapshot($this->disk, $fileName)
             )
-            ->sortByDesc(fn (PostgresSnapshot $snapshot) => $snapshot->createdAt()->toDateTimeString());
+            ->sortByDesc(fn (Snapshot $snapshot) => $snapshot->createdAt()->toDateTimeString());
     }
 
     public function findByName(string $name): ?Snapshot
     {
-        return $this->getAll()->first(fn (PostgresSnapshot $snapshot) => $snapshot->name === $name);
+        return $this->getAll()->first(fn (Snapshot $snapshot) => $snapshot->name === $name);
     }
 }

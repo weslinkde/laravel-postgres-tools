@@ -5,8 +5,8 @@ namespace Weslinkde\PostgresTools\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Console\ConfirmableTrait;
 use Symfony\Component\Process\Process;
-use Weslinkde\PostgresTools\PostgresSnapshot;
 use Weslinkde\PostgresTools\PostgresSnapshotRepository;
+use Weslinkde\PostgresTools\Snapshot;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
 use function Laravel\Prompts\error;
@@ -56,7 +56,7 @@ class DropDatabase extends Command
     {
         $snapShots = app(PostgresSnapshotRepository::class)->getAll();
 
-        $names = $snapShots->map(fn (PostgresSnapshot $snapshot) => $snapshot->name)
+        $names = $snapShots->map(fn (Snapshot $snapshot) => $snapshot->name)
             ->values()->toArray();
 
         return select(

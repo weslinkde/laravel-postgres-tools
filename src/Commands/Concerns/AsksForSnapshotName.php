@@ -2,8 +2,8 @@
 
 namespace Weslinkde\PostgresTools\Commands\Concerns;
 
-use Weslinkde\PostgresTools\PostgresSnapshot;
 use Weslinkde\PostgresTools\PostgresSnapshotRepository;
+use Weslinkde\PostgresTools\Snapshot;
 
 use function Laravel\Prompts\select;
 
@@ -13,7 +13,7 @@ trait AsksForSnapshotName
     {
         $snapShots = app(PostgresSnapshotRepository::class)->getAll();
 
-        $names = $snapShots->map(fn (PostgresSnapshot $snapshot) => $snapshot->name)
+        $names = $snapShots->map(fn (Snapshot $snapshot) => $snapshot->name)
             ->values()->toArray();
 
         return select(

@@ -1,198 +1,215 @@
+# Laravel Postgres Tools
+
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/weslinkde/laravel-postgres-tools.svg?style=flat-square)](https://packagist.org/packages/weslinkde/laravel-postgres-tools)
+[![GitHub Tests Action Status](https://github.com/weslinkde/laravel-postgres-tools/actions/workflows/run-tests.yml/badge.svg?branch=master)](https://github.com/weslinkde/laravel-postgres-tools/actions/workflows/run-tests.yml)
 [![GitHub Code Style Action Status](https://github.com/weslinkde/laravel-postgres-tools/actions/workflows/fix-php-code-style-issues.yml/badge.svg?branch=master)](https://github.com/weslinkde/laravel-postgres-tools/actions/workflows/fix-php-code-style-issues.yml)
 [![Total Downloads](https://img.shields.io/packagist/dt/weslinkde/laravel-postgres-tools.svg?style=flat-square)](https://packagist.org/packages/weslinkde/laravel-postgres-tools)
 
-This package provides some tools to make working with postgres easier.
-It comes with a command to create a snapshot of your database and a command to restore a snapshot.
-We created this package to handle huge databases (+16GB).
-Big thanks to [Spatie](https://spatie.be) for their great packages, especially
-the [laravel-db-snapshots](https://github.com/spatie/laravel-db-snapshots) package, which we use to create snapshots.
-You can also create new databases, drop existing ones or clone them.
+A Laravel package for PostgreSQL database management, optimized for large databases (16GB+). Create snapshots, restore backups, and manage databases with native PostgreSQL tools for maximum performance.
+
+## Features
+
+- **Database Snapshots**: Create and restore database dumps using native `pg_dump` and `pg_restore`
+- **Large Database Support**: Optimized for databases 16GB+ with streaming and parallel processing
+- **Database Management**: Create, drop, and clone PostgreSQL databases
+- **Flexible Storage**: Store snapshots on any Laravel filesystem disk (local, S3, etc.)
+- **Table Filtering**: Include or exclude specific tables from snapshots
+- **Parallel Restore**: Configure parallel jobs for faster restoration
+
+## Requirements
+
+- PHP 8.1+
+- Laravel 10, 11, or 12
+- PostgreSQL database
+- PostgreSQL CLI tools (`pg_dump`, `pg_restore`, `createdb`, `dropdb`)
 
 ## Installation
 
-You can install the package via composer:
+Install the package via composer:
 
 ```bash
 composer require weslinkde/laravel-postgres-tools
 ```
 
-You can publish the config file with:
+Publish the config file:
 
 ```bash
-php artisan vendor:publish --tag="laravel-postgres-tools-config"
+php artisan vendor:publish --tag="postgres-tools-config"
 ```
 
-This is the contents of the published config file:
+### Configuration
 
 ```php
 return [
-    /*
-     * The name of the disk on which the snapshots are stored.
-     */
+    // Laravel filesystem disk for storing snapshots
     'disk' => 'snapshots',
 
-    /*
-     * The connection to be used to create snapshots. Set this to null
-     * to use the default configured in `config/databases.php`
-     */
+    // Default database connection (must be pgsql driver)
     'default_connection' => 'pgsql',
 
-    /*
-     * The directory where temporary files will be stored.
-     */
+    // Temporary directory for streaming from remote disks
     'temporary_directory_path' => storage_path('app/laravel-db-snapshots/temp'),
 
-    /*
-     * Only these tables will be included in the snapshot. Set to `null` to include all tables.
-     *
-     * Default: `null`
-     */
-    'tables' => null,
+    // Include only these tables (null = all tables)
+    'tables' => env('PG_INCLUDE_TABLES', null),
 
-    /*
-     * All tables will be included in the snapshot expect this tables. Set to `null` to include all tables.
-     *
-     * Default: `null`
-     */
-    'exclude' => null,
+    // Exclude these tables (null = no exclusions)
+    'exclude' => env('PG_EXCLUDE_TABLES', null),
 
-    /*
-     * These are the options that will be passed to `pg_dump`. See `man pg_dump` for more information.
-     */
+    // pg_dump options
     'addExtraOption' => env('PG_DUMP_OPTIONS', '--no-owner --no-acl --no-privileges -Z 3 -Fc'),
 
-    /*
-     * The number of jobs pg_restore should use to restore the snapshot.
-     */
+    // Parallel restore jobs
     'jobs' => env('PG_RESTORE_JOBS', 4),
 ];
-
 ```
 
-## Performance Tuning for Large Databases
+Don't forget to configure your snapshots disk in `config/filesystems.php`:
 
-For databases larger than 16GB, consider these optimizations:
-
-### Compression Level (`-Z`)
-- **`-Z 9`** (Maximum): Slow, but smallest files (~5-10% smaller than Z1)
-- **`-Z 3`** (Recommended): 3-5x faster than Z9 with minimal size difference
-- **`-Z 1`** (Fast): Fastest compression, good for very large DBs
-
-```bash
-# Set in your .env file
-PG_DUMP_OPTIONS="--no-owner --no-acl --no-privileges -Z 1 -Fc"
+```php
+'disks' => [
+    'snapshots' => [
+        'driver' => 'local',
+        'root' => storage_path('app/snapshots'),
+    ],
+],
 ```
-
-### Parallel Restore Jobs
-The package supports parallel restoration using `pg_restore --jobs`:
-
-```bash
-# Set in your .env file
-PG_RESTORE_JOBS=8  # Use CPU cores - 2 for large databases
-```
-
-**Recommended values:**
-- Small DBs (<1GB): 1-2 jobs
-- Medium DBs (1-10GB): 4 jobs
-- Large DBs (10GB+): 4-8 jobs
-
-### Storage Considerations
-For cloud storage (S3, etc.), the package automatically streams files to local temp directory during restore to avoid memory issues.
 
 ## Usage
 
-To create a snapshot (which is just a dump from the database), run:
+### Create a Snapshot
 
 ```bash
-php artisan weslink:snapshot:create my-first-dump
-```
+# With a custom name
+php artisan weslink:snapshot:create my-backup
 
-Giving your snapshot a name is optional. If you don't pass a name, the current date time will be used:
-
-```bash
-# Creates a snapshot named something like `2017-03-17 14:31`
+# Auto-generated name (timestamp)
 php artisan weslink:snapshot:create
+
+# Include only specific tables
+php artisan weslink:snapshot:create --table=users --table=posts
+
+# Exclude specific tables
+php artisan weslink:snapshot:create --exclude=logs --exclude=cache
+
+# Use a different connection
+php artisan weslink:snapshot:create --connection=other_pgsql
 ```
 
-Maybe you only want to snapshot a couple of tables.
-You can do this by passing the `--table` multiple times or as a comma separated list:
+### Load a Snapshot
 
 ```bash
-# Both commands create a snapshot containing only the posts and users tables:
-php artisan weslink:snapshot:create --table=posts,users
-php artisan weslink:snapshot:create --table=posts --table=users
+# Load a specific snapshot
+php artisan weslink:snapshot:load my-backup
+
+# Load to a different connection
+php artisan weslink:snapshot:load my-backup --connection=other_pgsql
+
+# Load the most recent snapshot
+php artisan weslink:snapshot:load --latest
+
+# Skip dropping existing tables
+php artisan weslink:snapshot:load my-backup --drop-tables=0
+
+# Skip confirmation prompt
+php artisan weslink:snapshot:load my-backup --force
 ```
 
-You may want to exclude some tables from snapshot.
-You can do this by passing the `--exclude` multiple times or as a comma separated list:
+### Delete a Snapshot
 
 ```bash
-# create snapshot from all tables excluding the users and posts
-php artisan weslink:snapshot:create --exclude=posts,users
-php artisan weslink:snapshot:create --exclude=posts --exclude=users
+php artisan weslink:snapshot:delete my-backup
 ```
 
-> Note: if you pass `--table` and `--exclude` in the same time it will use `--table` to create the snapshot, and it'd
-> ignore the `--exclude`
-
-After you've made some changes to the database, you can create another snapshot:
+### Database Management
 
 ```bash
-php artisan weslink:snapshot:create my-second-dump
+# Create a new database
+php artisan weslink:database:create new_database
+
+# Drop a database (requires confirmation in production)
+php artisan weslink:database:drop old_database
+
+# Clone a database
+php artisan weslink:database:clone source_db target_db
 ```
 
-To load a previous dump issue, this command:
+## Performance Tuning
+
+### Compression Level
+
+The `-Z` flag controls compression (0-9). Higher = smaller files but slower:
+
+| Level | Speed | Use Case |
+|-------|-------|----------|
+| `-Z 1` | Fastest | Very large databases (50GB+) |
+| `-Z 3` | Balanced | Recommended default |
+| `-Z 9` | Slowest | Maximum compression needed |
 
 ```bash
-php artisan weslink:snapshot:load my-first-dump
+# In your .env file
+PG_DUMP_OPTIONS="--no-owner --no-acl --no-privileges -Z 1 -Fc"
 ```
 
-To load a previous dump to another DB connection (but the driver has to be pgsql):
+### Parallel Restore
+
+Configure parallel jobs based on database size:
+
+| Database Size | Recommended Jobs |
+|--------------|------------------|
+| < 1GB | 1-2 |
+| 1-10GB | 4 |
+| 10GB+ | CPU cores - 2 |
 
 ```bash
-php artisan weslink:snapshot:load my-first-dump --connection=connectionName
+# In your .env file
+PG_RESTORE_JOBS=8
 ```
 
-A dump can be deleted with:
+### Cloud Storage
 
-```bash
-php artisan weslink:snapshot:delete my-first-dump
-```
-
-You can create new databases with:
-
-```bash
-php artisan weslink:database:create my-new-database
-```
-
-And you can drop existing databases with:
-
-```bash
-php artisan weslink:database:drop my-old-database
-```
-
-> Note: This action is irreversible. It will drop the database, on production it will ask you for your confirmation.
-
-It is also possible to clone an existing database with:
-
-```bash
-php artisan weslink:database:clone my-old-database my-new-database
-```
-
-It will create a new database for you. If the new database already exists, it won't do anything.
+When using remote storage (S3, etc.), snapshots are automatically streamed to a local temp directory during restore to avoid memory issues.
 
 ## Events
 
-For convenience, we're using the events from Spaties package.
-There are several events fired that can be used to perform some logic of your own:
+The package dispatches events during snapshot operations:
 
-- `Spatie\DbSnapshots\Events\CreatingSnapshot`: will be fired before a snapshot is created
-- `Spatie\DbSnapshots\Events\CreatedSnapshot`: will be fired after a snapshot has been created
-- `Spatie\DbSnapshots\Events\LoadingSnapshot`: will be fired before a snapshot is loaded
-- `Spatie\DbSnapshots\Events\LoadedSnapshot`: will be fired after a snapshot has been loaded
-- `Spatie\DbSnapshots\Events\DeletingSnapshot`: will be fired before a snapshot is deleted
-- `Spatie\DbSnapshots\Events\DeletedSnapshot`: will be fired after a snapshot has been deleted
+| Event | Description |
+|-------|-------------|
+| `Weslinkde\PostgresTools\Events\CreatingSnapshot` | Before snapshot creation |
+| `Weslinkde\PostgresTools\Events\CreatedSnapshot` | After snapshot creation |
+| `Weslinkde\PostgresTools\Events\LoadingSnapshot` | Before snapshot loading |
+| `Weslinkde\PostgresTools\Events\LoadedSnapshot` | After snapshot loading |
+| `Weslinkde\PostgresTools\Events\DeletingSnapshot` | Before snapshot deletion |
+| `Weslinkde\PostgresTools\Events\DeletedSnapshot` | After snapshot deletion |
+
+### Example Event Listener
+
+```php
+use Weslinkde\PostgresTools\Events\CreatedSnapshot;
+
+class NotifyBackupComplete
+{
+    public function handle(CreatedSnapshot $event): void
+    {
+        // $event->snapshot contains the Snapshot instance
+        Log::info("Snapshot created: {$event->snapshot->name}");
+    }
+}
+```
+
+## Testing
+
+```bash
+# Run all tests
+composer test
+
+# Run with coverage
+composer test-coverage
+
+# Run PHPStan analysis
+composer analyse
+```
 
 ## Changelog
 

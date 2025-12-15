@@ -10,3 +10,6 @@ testbench.yaml
 vendor
 node_modules
 /logs/
+postgres_data
+.env.testing
+storage/framework/testing/snapshots

@@ -1,7 +1,7 @@
 <?php
 
-use Weslinkde\PostgresTools\PostgresSnapshot;
 use Weslinkde\PostgresTools\PostgresSnapshotRepository;
+use Weslinkde\PostgresTools\Snapshot;
 
 beforeEach(function () {
     // Mock the snapshot repository
@@ -21,7 +21,7 @@ it('displays a warning when no snapshots exist', function () {
 });
 
 it('displays a warning when snapshot does not exist', function () {
-    $snapshot = Mockery::mock(PostgresSnapshot::class);
+    $snapshot = Mockery::mock(Snapshot::class);
     $snapshot->name = 'existing-snapshot';
 
     $this->snapshotRepository
@@ -41,7 +41,7 @@ it('displays a warning when snapshot does not exist', function () {
 });
 
 it('loads a snapshot successfully', function () {
-    $snapshot = Mockery::mock(PostgresSnapshot::class);
+    $snapshot = Mockery::mock(Snapshot::class);
     $snapshot->name = 'test-snapshot';
 
     $this->snapshotRepository
@@ -66,10 +66,10 @@ it('loads a snapshot successfully', function () {
 });
 
 it('loads the latest snapshot when --latest option is provided', function () {
-    $snapshot1 = Mockery::mock(PostgresSnapshot::class);
+    $snapshot1 = Mockery::mock(Snapshot::class);
     $snapshot1->name = 'latest-snapshot';
 
-    $snapshot2 = Mockery::mock(PostgresSnapshot::class);
+    $snapshot2 = Mockery::mock(Snapshot::class);
     $snapshot2->name = 'older-snapshot';
 
     // getAll() is called twice: once in handle() and once in askForSnapshotName() (but won't be called with --latest)
@@ -95,7 +95,7 @@ it('loads the latest snapshot when --latest option is provided', function () {
 });
 
 it('loads snapshot with custom connection', function () {
-    $snapshot = Mockery::mock(PostgresSnapshot::class);
+    $snapshot = Mockery::mock(Snapshot::class);
     $snapshot->name = 'test-snapshot';
 
     $this->snapshotRepository
@@ -124,7 +124,7 @@ it('loads snapshot with custom connection', function () {
 });
 
 it('loads snapshot without dropping tables when --drop-tables=0', function () {
-    $snapshot = Mockery::mock(PostgresSnapshot::class);
+    $snapshot = Mockery::mock(Snapshot::class);
     $snapshot->name = 'test-snapshot';
 
     $this->snapshotRepository
@@ -153,7 +153,7 @@ it('loads snapshot without dropping tables when --drop-tables=0', function () {
 });
 
 it('accepts --force flag to skip confirmation', function () {
-    $snapshot = Mockery::mock(PostgresSnapshot::class);
+    $snapshot = Mockery::mock(Snapshot::class);
     $snapshot->name = 'test-snapshot';
 
     $this->snapshotRepository

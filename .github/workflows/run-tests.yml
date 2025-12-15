@@ -34,8 +34,33 @@ jobs:
           - laravel: 10.*
             php: 8.1
             stability: prefer-lowest
+          # Exclude Windows from PostgreSQL integration tests (services not supported)
+          - os: windows-latest
 
     name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.stability }} - ${{ matrix.os }}
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres_tools_test
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: postgres_tools_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: postgres_tools_test
+      DB_USERNAME: postgres_tools_test
+      DB_PASSWORD: secret
 
     steps:
       - name: Checkout code
@@ -45,7 +70,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pdo_pgsql, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
           coverage: none
 
       - name: Setup problem matchers
