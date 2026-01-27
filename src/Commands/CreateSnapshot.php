@@ -15,7 +15,7 @@ use function Laravel\Prompts\table;
 
 class CreateSnapshot extends Command
 {
-    protected $signature = 'weslink:snapshot:create {name?} {--connection=} {--database=} {--compress} {--table=*} {--exclude=*}';
+    protected $signature = 'weslink:snapshot:create {name?} {--connection=} {--database=} {--compress} {--table=*} {--exclude=*} {--exclude-table-data=*}';
 
     protected $description = 'Create a new snapshot.';
 
@@ -44,6 +44,10 @@ class CreateSnapshot extends Command
             $exclude = null;
         }
 
+        $excludeTableData = $this->option('exclude-table-data') ?: config('postgres-tools.exclude-table-data', null);
+        $excludeTableData = is_string($excludeTableData) ? explode(',', $excludeTableData) : $excludeTableData;
+        $excludeTableData = empty($excludeTableData) ? null : $excludeTableData;
+
         $postgresHelper = PostgresHelper::createForConnection($connectionName);
 
         if ($database = $this->option('database')) {
@@ -55,7 +59,8 @@ class CreateSnapshot extends Command
             fn () => $postgresHelper->createSnapshot(
                 snapshotName: $snapshotName,
                 tables: $tables,
-                exclude: $exclude
+                exclude: $exclude,
+                excludeTableData: $excludeTableData
             ),
             'Creating new snapshot...'
         );

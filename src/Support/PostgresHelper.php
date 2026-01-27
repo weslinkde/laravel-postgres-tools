@@ -61,7 +61,7 @@ class PostgresHelper
         return $postgresHelper;
     }
 
-    public function createSnapshot(string $snapshotName, ?array $tables = null, ?array $exclude = null): \Weslinkde\PostgresTools\Snapshot
+    public function createSnapshot(string $snapshotName, ?array $tables = null, ?array $exclude = null, ?array $excludeTableData = null): \Weslinkde\PostgresTools\Snapshot
     {
         $snapshotFactory = app(SnapshotFactory::class);
 
@@ -71,7 +71,8 @@ class PostgresHelper
             $this->connection,
             false,
             $tables,
-            $exclude
+            $exclude,
+            $excludeTableData
         );
     }
 

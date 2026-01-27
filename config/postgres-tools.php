@@ -32,6 +32,13 @@ return [
     'exclude' => env('PG_EXCLUDE_TABLES', null),
 
     /*
+     * Exclude data from these tables but keep the table structure. Set to `null` to include all data.
+     *
+     * Default: `null`
+     */
+    'exclude-table-data' => env('PG_EXCLUDE_TABLE_DATA', null),
+
+    /*
      * These are the options that will be passed to `pg_dump`. See `man pg_dump` for more information.
      *
      * Performance tips for large databases:

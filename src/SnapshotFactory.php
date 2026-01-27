@@ -27,6 +27,7 @@ class SnapshotFactory
      * @param  bool  $compress  Whether to compress the snapshot (not used for PostgreSQL custom format)
      * @param  array|null  $tables  Tables to include in the snapshot
      * @param  array|null  $exclude  Tables to exclude from the snapshot
+     * @param  array|null  $excludeTableData  Tables to exclude data from (structure is kept)
      */
     public function create(
         string $snapshotName,
@@ -34,7 +35,8 @@ class SnapshotFactory
         string $connectionName,
         bool $compress = false,
         ?array $tables = null,
-        ?array $exclude = null
+        ?array $exclude = null,
+        ?array $excludeTableData = null
     ): Snapshot {
         $disk = $this->getDisk($diskName);
 
@@ -52,7 +54,7 @@ class SnapshotFactory
             $extraOptions
         ));
 
-        $this->createDump($connectionName, $fileName, $disk, $tables, $exclude, $extraOptions);
+        $this->createDump($connectionName, $fileName, $disk, $tables, $exclude, $extraOptions, $excludeTableData);
 
         $snapshot = new Snapshot($disk, $fileName);
 
@@ -132,7 +134,8 @@ class SnapshotFactory
         FilesystemAdapter $disk,
         ?array $tables = null,
         ?array $exclude = null,
-        array $extraOptions = []
+        array $extraOptions = [],
+        ?array $excludeTableData = null
     ): void {
         $directory = (new TemporaryDirectory(config('postgres-tools.temporary_directory_path')))->create();
 
@@ -146,6 +149,12 @@ class SnapshotFactory
 
         if (is_array($exclude)) {
             $dbDumper->excludeTables($exclude);
+        }
+
+        if (is_array($excludeTableData)) {
+            foreach ($excludeTableData as $table) {
+                $dbDumper->addExtraOption("--exclude-table-data={$table}");
+            }
         }
 
         foreach ($extraOptions as $extraOption) {
