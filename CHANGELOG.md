@@ -1,3 +1,15 @@
+## [1.1.0](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.0.2...v1.1.0) (2026-01-27)
+
+### Features
+
+* Add exclude-table-data option to export table structure without data ([543767d](https://github.com/weslinkde/laravel-postgres-tools/commit/543767da7241b75e6eb54188b1a3c742f555e24b))
+
+### Build
+
+* **deps:** Bump actions/checkout from 5 to 6 ([#19](https://github.com/weslinkde/laravel-postgres-tools/issues/19)) ([74cbbc0](https://github.com/weslinkde/laravel-postgres-tools/commit/74cbbc056a804604ff58fa9248b8de8e578bb152))
+* **deps:** Bump actions/setup-node from 4 to 6 ([#18](https://github.com/weslinkde/laravel-postgres-tools/issues/18)) ([be995a0](https://github.com/weslinkde/laravel-postgres-tools/commit/be995a026d928ecb62d3a3b1ddf15c9fc2630e21))
+* **deps:** Bump dependabot/fetch-metadata from 2.4.0 to 2.5.0 ([a46d578](https://github.com/weslinkde/laravel-postgres-tools/commit/a46d578730c1903c1141954dea185d54d5ccad13))
+
 ## [1.0.2](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.0.1...v1.0.2) (2025-12-15)
 
 ### CI/CD
