@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.1.0...v1.2.0) (2026-01-27)
+
+### Features
+
+* add Laravel 10 and 11 support ([f1b1b87](https://github.com/weslinkde/laravel-postgres-tools/commit/f1b1b871591de6af42c5c96ecd936e8d3dcc68c1))
+
 ## [1.1.0](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.0.2...v1.1.0) (2026-01-27)
 
 ### Features
