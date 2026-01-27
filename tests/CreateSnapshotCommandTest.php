@@ -3,7 +3,7 @@
 use Weslinkde\PostgresTools\Commands\CreateSnapshot;
 
 it('has exclude-table-data option in signature', function () {
-    $command = new CreateSnapshot();
+    $command = new CreateSnapshot;
 
     $definition = $command->getDefinition();
 
@@ -12,7 +12,7 @@ it('has exclude-table-data option in signature', function () {
 });
 
 it('has exclude option in signature', function () {
-    $command = new CreateSnapshot();
+    $command = new CreateSnapshot;
 
     $definition = $command->getDefinition();
 
@@ -21,7 +21,7 @@ it('has exclude option in signature', function () {
 });
 
 it('has table option in signature', function () {
-    $command = new CreateSnapshot();
+    $command = new CreateSnapshot;
 
     $definition = $command->getDefinition();
 
