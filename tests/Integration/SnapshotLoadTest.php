@@ -139,6 +139,54 @@ it('loads snapshot without dropping tables when --drop-tables=0', function (): v
     expect(DB::table('snapshot_test')->count())->toBeGreaterThan(0);
 });
 
+it('creates database automatically when loading snapshot with --database option', function (): void {
+    $snapshotName = $this->generateTestSnapshotName('auto_create_db');
+    $targetDatabase = $this->generateTestDatabaseName('tenant');
+
+    // Create a snapshot from the current database
+    $this->artisan('weslink:snapshot:create', ['name' => $snapshotName])
+        ->assertExitCode(0);
+
+    // Ensure target database does not exist
+    expect($this->databaseExists($targetDatabase))->toBeFalse();
+
+    // Load snapshot into a new database - should auto-create it
+    $this->artisan('weslink:snapshot:load', [
+        'name' => $snapshotName,
+        '--database' => $targetDatabase,
+        '--force' => true,
+    ])
+        ->expectsOutput("Snapshot `{$snapshotName}` loaded!")
+        ->assertExitCode(0);
+
+    // Verify the database was created
+    expect($this->databaseExists($targetDatabase))->toBeTrue();
+});
+
+it('loads snapshot into existing database with --database option without error', function (): void {
+    $snapshotName = $this->generateTestSnapshotName('existing_db');
+    $targetDatabase = $this->generateTestDatabaseName('tenant');
+
+    // Create a snapshot
+    $this->artisan('weslink:snapshot:create', ['name' => $snapshotName])
+        ->assertExitCode(0);
+
+    // Pre-create the target database
+    $this->createTestDatabase($targetDatabase);
+    expect($this->databaseExists($targetDatabase))->toBeTrue();
+
+    // Load snapshot into the existing database - should not fail
+    $this->artisan('weslink:snapshot:load', [
+        'name' => $snapshotName,
+        '--database' => $targetDatabase,
+        '--force' => true,
+    ])
+        ->expectsOutput("Snapshot `{$snapshotName}` loaded!")
+        ->assertExitCode(0);
+
+    expect($this->databaseExists($targetDatabase))->toBeTrue();
+});
+
 it('respects --force flag to skip confirmation', function (): void {
     $snapshotName = $this->generateTestSnapshotName('force_flag');
 

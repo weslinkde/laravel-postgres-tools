@@ -79,14 +79,13 @@ class Snapshot
             $connectionName = config('database.default');
         }
 
-        if ($dropTables) {
-            $this->dropAllCurrentTables();
-        }
-
         $postgresHelper = PostgresHelper::createForConnection($connectionName);
 
         if ($database !== null) {
             $postgresHelper->setName($database);
+            $postgresHelper->createDatabase();
+        } elseif ($dropTables) {
+            $this->dropAllCurrentTables();
         }
 
         $isDiskLocal = $this->disk->getConfig()['driver'] === 'local';
