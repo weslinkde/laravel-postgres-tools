@@ -40,7 +40,7 @@ class DropDatabase extends Command
         }
 
         /** @var Process|bool $result */
-        $result = spin(fn (): \Symfony\Component\Process\Process|bool => $postgresHelper->dropDatabase(), 'Dropping database...');
+        $result = spin(fn (): Process|bool => $postgresHelper->dropDatabase(), 'Dropping database...');
 
         if ($result === false || ! $result->isSuccessful()) {
             $this->error('Failed to drop database.');

@@ -23,7 +23,7 @@ class PostgresToolsServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/postgres-tools.php', 'postgres-tools');
 
-        $this->app->bind(PostgresSnapshotRepository::class, function (): \Weslinkde\PostgresTools\PostgresSnapshotRepository {
+        $this->app->bind(PostgresSnapshotRepository::class, function (): PostgresSnapshotRepository {
             $diskName = config('postgres-tools.disk');
 
             return new PostgresSnapshotRepository(app(Factory::class), $diskName);

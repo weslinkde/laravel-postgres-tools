@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Collection;
 use Weslinkde\PostgresTools\PostgresSnapshotRepository;
 use Weslinkde\PostgresTools\Snapshot;
@@ -21,7 +22,7 @@ it('displays a warning when no snapshots exist', function (): void {
 });
 
 it('lists all snapshots in a table', function (): void {
-    $mockDisk = Mockery::mock(\Illuminate\Filesystem\FilesystemAdapter::class);
+    $mockDisk = Mockery::mock(FilesystemAdapter::class);
     $mockDisk->shouldReceive('path')
         ->with('snapshot1.sql')
         ->andReturn('/path/to/snapshot1.sql');

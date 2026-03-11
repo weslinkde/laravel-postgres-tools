@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Filesystem\FilesystemAdapter as Disk;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\Process\Process;
 use Weslinkde\PostgresTools\Events\DeletedSnapshot;
 use Weslinkde\PostgresTools\Events\DeletingSnapshot;
 use Weslinkde\PostgresTools\Events\LoadedSnapshot;
@@ -102,7 +103,7 @@ class Snapshot
         }
 
         spin(
-            fn (): \Symfony\Component\Process\Process => $postgresHelper->restoreSnapshot($dbDumpFilePath),
+            fn (): Process => $postgresHelper->restoreSnapshot($dbDumpFilePath),
             'Importing snapshot '.$this->name.'...'
         );
 

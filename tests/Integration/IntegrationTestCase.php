@@ -4,6 +4,7 @@ namespace Weslinkde\PostgresTools\Tests\Integration;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Weslinkde\PostgresTools\PostgresSnapshotRepository;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 use Weslinkde\PostgresTools\Tests\TestCase;
 
@@ -109,7 +110,7 @@ abstract class IntegrationTestCase extends TestCase
 
     protected function snapshotExists(string $name): bool
     {
-        $repository = app(\Weslinkde\PostgresTools\PostgresSnapshotRepository::class);
+        $repository = app(PostgresSnapshotRepository::class);
 
         return $repository->findByName($name) !== null;
     }

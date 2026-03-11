@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\DB;
+
 it('creates a new database via command', function (): void {
     $dbName = $this->generateTestDatabaseName('cmd_create');
 
@@ -65,6 +67,6 @@ it('creates database and can connect to it', function (): void {
         ['database' => $dbName]
     ));
 
-    $pdo = \Illuminate\Support\Facades\DB::connection('temp')->getPdo();
+    $pdo = DB::connection('temp')->getPdo();
     expect($pdo)->not->toBeNull();
 });

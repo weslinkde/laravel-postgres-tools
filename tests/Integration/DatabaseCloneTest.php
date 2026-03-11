@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
     // Setup source database with test data
@@ -69,7 +70,7 @@ it('creates temporary snapshot during clone and cleans it up', function (): void
     $targetDbName = $this->generateTestDatabaseName('temp_snapshot_cleanup');
 
     // Get initial snapshot count
-    $initialSnapshots = \Illuminate\Support\Facades\Storage::disk('snapshots')->files();
+    $initialSnapshots = Storage::disk('snapshots')->files();
 
     $this->artisan('weslink:database:clone', [
         'databaseName' => $sourceDbName,
@@ -78,7 +79,7 @@ it('creates temporary snapshot during clone and cleans it up', function (): void
         ->assertExitCode(0);
 
     // Verify temp snapshot was cleaned up
-    $finalSnapshots = \Illuminate\Support\Facades\Storage::disk('snapshots')->files();
+    $finalSnapshots = Storage::disk('snapshots')->files();
 
     // Should be same count (temp snapshot deleted)
     expect(count($finalSnapshots))->toBe(count($initialSnapshots));

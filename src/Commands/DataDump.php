@@ -5,6 +5,7 @@ namespace Weslinkde\PostgresTools\Commands;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Process\Process;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
 use Weslinkde\PostgresTools\Support\Format;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
@@ -47,7 +48,7 @@ class DataDump extends Command
         $target = $tables ? implode(', ', $tables) : 'all tables';
 
         $process = spin(
-            fn (): \Symfony\Component\Process\Process => $postgresHelper->dumpData($outputPath, $tables),
+            fn (): Process => $postgresHelper->dumpData($outputPath, $tables),
             "Dumping data from {$target}..."
         );
 

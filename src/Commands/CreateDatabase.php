@@ -36,7 +36,7 @@ class CreateDatabase extends Command
         }
 
         /** @var Process|bool $result */
-        $result = spin(fn (): \Symfony\Component\Process\Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
+        $result = spin(fn (): Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
 
         if ($result === false || ! $result->isSuccessful()) {
             $this->error('Failed to create database.');

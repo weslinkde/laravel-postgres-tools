@@ -3,6 +3,7 @@
 namespace Weslinkde\PostgresTools\Commands;
 
 use Illuminate\Console\Command;
+use Symfony\Component\Process\Process;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
 use function Laravel\Prompts\spin;
@@ -26,10 +27,10 @@ class CloneDatabase extends Command
         $snapshot = spin(fn () => $postgresHelper->createSnapshot('temp-snapshot'), 'Creating snapshot...');
         // Create a new database
         $postgresHelper->setName($newDatabaseName);
-        spin(fn (): \Symfony\Component\Process\Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
+        spin(fn (): Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
 
         // Load the snapshot into the new database
-        spin(fn (): \Symfony\Component\Process\Process => $postgresHelper->restoreSnapshot($snapshot->disk->path($snapshot->fileName)), 'Loading snapshot...');
+        spin(fn (): Process => $postgresHelper->restoreSnapshot($snapshot->disk->path($snapshot->fileName)), 'Loading snapshot...');
 
         // Delete the snapshot
         $snapshot->delete();

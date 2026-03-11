@@ -37,7 +37,7 @@ class PostgresSnapshotRepository
                 return pathinfo($fileName, PATHINFO_EXTENSION) === 'sql';
             })
             ->map(
-                fn (string $fileName): \Weslinkde\PostgresTools\Snapshot => new Snapshot($this->disk, $fileName)
+                fn (string $fileName): Snapshot => new Snapshot($this->disk, $fileName)
             )
             ->sortByDesc(fn (Snapshot $snapshot): string => $snapshot->createdAt()->toDateTimeString());
     }

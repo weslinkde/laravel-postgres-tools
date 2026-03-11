@@ -3,6 +3,7 @@
 namespace Weslinkde\PostgresTools\Commands;
 
 use Illuminate\Console\Command;
+use Symfony\Component\Process\Process;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
@@ -38,7 +39,7 @@ class DatabaseVacuum extends Command
         $target = $tables ? implode(', ', $tables) : 'all tables';
 
         $process = spin(
-            fn (): \Symfony\Component\Process\Process => $postgresHelper->vacuumAnalyze($tables),
+            fn (): Process => $postgresHelper->vacuumAnalyze($tables),
             "Running VACUUM ANALYZE on {$target}..."
         );
 
