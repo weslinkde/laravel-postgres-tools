@@ -1,3 +1,10 @@
+## [1.3.0](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.2.0...v1.3.0) (2026-03-11)
+
+### Features
+
+* auto-create database when loading snapshot with --database option ([e47fbde](https://github.com/weslinkde/laravel-postgres-tools/commit/e47fbde6af66a2d6db486844ad3208ba8aca0d6f))
+* trigger release for auto-create database on snapshot load ([b373899](https://github.com/weslinkde/laravel-postgres-tools/commit/b37389930c63c3b97dbe682b3854eb520d68975d))
+
 ## [1.2.0](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.1.0...v1.2.0) (2026-01-27)
 
 ### Features
