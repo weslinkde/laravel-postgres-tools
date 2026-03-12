@@ -1,3 +1,9 @@
+## [1.3.1](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.3.0...v1.3.1) (2026-03-12)
+
+### Bug Fixes
+
+* pass --database override to PostgresDumper in snapshot:create ([0383d04](https://github.com/weslinkde/laravel-postgres-tools/commit/0383d04af3e317040e97c5a300e71aa4f8d05701))
+
 ## [1.3.0](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.2.0...v1.3.0) (2026-03-11)
 
 ### Features
