@@ -28,6 +28,7 @@ class SnapshotFactory
      * @param  array|null  $tables  Tables to include in the snapshot
      * @param  array|null  $exclude  Tables to exclude from the snapshot
      * @param  array|null  $excludeTableData  Tables to exclude data from (structure is kept)
+     * @param  string|null  $databaseName  Override the database name from the connection config
      */
     public function create(
         string $snapshotName,
@@ -36,7 +37,8 @@ class SnapshotFactory
         bool $compress = false,
         ?array $tables = null,
         ?array $exclude = null,
-        ?array $excludeTableData = null
+        ?array $excludeTableData = null,
+        ?string $databaseName = null,
     ): Snapshot {
         $disk = $this->getDisk($diskName);
 
@@ -54,7 +56,7 @@ class SnapshotFactory
             $extraOptions
         ));
 
-        $this->createDump($connectionName, $fileName, $disk, $tables, $exclude, $extraOptions, $excludeTableData);
+        $this->createDump($connectionName, $fileName, $disk, $tables, $exclude, $extraOptions, $excludeTableData, $databaseName);
 
         $snapshot = new Snapshot($disk, $fileName);
 
@@ -135,13 +137,18 @@ class SnapshotFactory
         ?array $tables = null,
         ?array $exclude = null,
         array $extraOptions = [],
-        ?array $excludeTableData = null
+        ?array $excludeTableData = null,
+        ?string $databaseName = null,
     ): void {
         $directory = (new TemporaryDirectory(config('postgres-tools.temporary_directory_path')))->create();
 
         $dumpPath = $directory->path($fileName);
 
         $dbDumper = $this->getDbDumper($connectionName);
+
+        if ($databaseName !== null) {
+            $dbDumper->setDbName($databaseName);
+        }
 
         if (is_array($tables)) {
             $dbDumper->includeTables($tables);

@@ -73,7 +73,8 @@ class PostgresHelper
             false,
             $tables,
             $exclude,
-            $excludeTableData
+            $excludeTableData,
+            $this->name
         );
     }
 
