@@ -1,3 +1,14 @@
+## [1.4.0](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.3.1...v1.4.0) (2026-03-31)
+
+### Features
+
+* add Laravel 13 support, drop Laravel 10 ([#23](https://github.com/weslinkde/laravel-postgres-tools/issues/23)) ([117c9ae](https://github.com/weslinkde/laravel-postgres-tools/commit/117c9aec5769adf0b8ccb8f377cd8002795c1ca1))
+
+### Build
+
+* **deps:** Bump dependabot/fetch-metadata from 2.5.0 to 3.0.0 ([#22](https://github.com/weslinkde/laravel-postgres-tools/issues/22)) ([fc24adf](https://github.com/weslinkde/laravel-postgres-tools/commit/fc24adf2950761ab726c8daf865fb0de760c9e1e))
+* **deps:** Bump ramsey/composer-install from 3 to 4 ([#21](https://github.com/weslinkde/laravel-postgres-tools/issues/21)) ([e6f0475](https://github.com/weslinkde/laravel-postgres-tools/commit/e6f04755c37b38ce1293f2b4973eb93515db6a4c))
+
 ## [1.3.1](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.3.0...v1.3.1) (2026-03-12)
 
 ### Bug Fixes
