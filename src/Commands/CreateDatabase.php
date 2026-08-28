@@ -21,7 +21,7 @@ class CreateDatabase extends Command
 
     protected $description = 'Creates a database.';
 
-    public function handle(): void
+    public function handle(): int
     {
         $newDatabaseName = $this->argument('name');
 
@@ -29,22 +29,24 @@ class CreateDatabase extends Command
 
         try {
             $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($newDatabaseName);
+
+            /** @var Process|bool $result */
+            $result = spin(fn (): Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
         } catch (\Exception $e) {
             error($e->getMessage());
 
-            return;
+            return self::FAILURE;
         }
 
-        /** @var Process|bool $result */
-        $result = spin(fn (): Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
+        if ($result === false) {
+            $this->error("Database `{$newDatabaseName}` already exists.");
 
-        if ($result === false || ! $result->isSuccessful()) {
-            $this->error('Failed to create database.');
-
-            return;
+            return self::FAILURE;
         }
 
         $this->info("Database with name `{$newDatabaseName}` was created!");
+
+        return self::SUCCESS;
     }
 
     public function askForSnapshotName(): string

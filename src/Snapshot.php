@@ -82,13 +82,9 @@ class Snapshot
 
         $postgresHelper = PostgresHelper::createForConnection($connectionName);
 
-        if ($database !== null) {
-            $postgresHelper->setName($database);
-            $postgresHelper->createDatabase();
-        } elseif ($dropTables) {
-            $this->dropAllCurrentTables();
-        }
-
+        // The dump has to be on local disk before anything can be verified, and it has to be
+        // verified before anything is dropped - otherwise a broken snapshot leaves an empty
+        // database behind.
         $isDiskLocal = $this->disk->getConfig()['driver'] === 'local';
 
         if ($isDiskLocal) {
@@ -102,13 +98,24 @@ class Snapshot
             $this->streamToLocalFile($this->disk, $this->fileName, $dbDumpFilePath);
         }
 
-        spin(
-            fn (): Process => $postgresHelper->restoreSnapshot($dbDumpFilePath),
-            'Importing snapshot '.$this->name.'...'
-        );
+        try {
+            $postgresHelper->assertSnapshotIsRestorable($dbDumpFilePath);
 
-        if (! $isDiskLocal && file_exists($dbDumpFilePath)) {
-            unlink($dbDumpFilePath);
+            if ($database !== null) {
+                $postgresHelper->setName($database);
+                $postgresHelper->createDatabase();
+            } elseif ($dropTables) {
+                $this->dropAllCurrentTables($connectionName);
+            }
+
+            spin(
+                fn (): Process => $postgresHelper->restoreSnapshot($dbDumpFilePath),
+                'Importing snapshot '.$this->name.'...'
+            );
+        } finally {
+            if (! $isDiskLocal && file_exists($dbDumpFilePath)) {
+                unlink($dbDumpFilePath);
+            }
         }
 
         event(new LoadedSnapshot($this));
@@ -143,14 +150,16 @@ class Snapshot
     }
 
     /**
-     * Drop all current tables in the database.
+     * Drop all current tables on the connection the snapshot is loaded into.
      */
-    protected function dropAllCurrentTables(): void
+    protected function dropAllCurrentTables(?string $connectionName = null): void
     {
-        DB::connection(DB::getDefaultConnection())
+        $connectionName ??= DB::getDefaultConnection();
+
+        DB::connection($connectionName)
             ->getSchemaBuilder()
             ->dropAllTables();
 
-        DB::reconnect();
+        DB::reconnect($connectionName);
     }
 }

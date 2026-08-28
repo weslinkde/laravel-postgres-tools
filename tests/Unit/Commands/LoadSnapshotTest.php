@@ -17,7 +17,7 @@ it('displays a warning when no snapshots exist', function (): void {
 
     $this->artisan('weslink:snapshot:load')
         ->expectsOutput('No snapshots found. Run `snapshot:create` first to create snapshots.')
-        ->assertExitCode(0);
+        ->assertExitCode(1);
 });
 
 it('displays a warning when snapshot does not exist', function (): void {
@@ -37,7 +37,7 @@ it('displays a warning when snapshot does not exist', function (): void {
 
     $this->artisan('weslink:snapshot:load', ['name' => 'non-existent-snapshot', '--force' => true])
         ->expectsOutput('Snapshot `non-existent-snapshot` does not exist!')
-        ->assertExitCode(0);
+        ->assertExitCode(1);
 });
 
 it('loads a snapshot successfully', function (): void {

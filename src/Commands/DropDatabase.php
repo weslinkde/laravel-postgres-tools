@@ -21,34 +21,36 @@ class DropDatabase extends Command
 
     protected $description = 'Drops a database.';
 
-    public function handle(): void
+    public function handle(): int
     {
         $databaseName = $this->argument('name');
 
         $connectionName = config('postgres-tools.default_connection', config('database.default'));
 
         if (! $this->confirmToProceed()) {
-            return;
+            return self::FAILURE;
         }
 
         try {
             $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($databaseName);
+
+            /** @var Process|bool $result */
+            $result = spin(fn (): Process|bool => $postgresHelper->dropDatabase(), 'Dropping database...');
         } catch (\Exception $e) {
             error($e->getMessage());
 
-            return;
+            return self::FAILURE;
         }
 
-        /** @var Process|bool $result */
-        $result = spin(fn (): Process|bool => $postgresHelper->dropDatabase(), 'Dropping database...');
+        if ($result === false) {
+            $this->error("Database `{$databaseName}` does not exist.");
 
-        if ($result === false || ! $result->isSuccessful()) {
-            $this->error('Failed to drop database.');
-
-            return;
+            return self::FAILURE;
         }
 
         $this->info("Database with name `{$databaseName}` was dropped!");
+
+        return self::SUCCESS;
     }
 
     public function askForSnapshotName(): string

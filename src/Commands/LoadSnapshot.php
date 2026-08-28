@@ -5,6 +5,7 @@ namespace Weslinkde\PostgresTools\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Console\ConfirmableTrait;
 use Weslinkde\PostgresTools\Commands\Concerns\AsksForSnapshotName;
+use Weslinkde\PostgresTools\Exceptions\ProcessFailed;
 use Weslinkde\PostgresTools\PostgresSnapshotRepository;
 use Weslinkde\PostgresTools\Snapshot;
 
@@ -19,18 +20,18 @@ class LoadSnapshot extends Command
 
     protected $description = 'Load up a snapshot.';
 
-    public function handle(): void
+    public function handle(): int
     {
         $snapShots = app(PostgresSnapshotRepository::class)->getAll();
 
         if ($snapShots->isEmpty()) {
             $this->warn('No snapshots found. Run `snapshot:create` first to create snapshots.');
 
-            return;
+            return self::FAILURE;
         }
 
         if (! $this->confirmToProceed()) {
-            return;
+            return self::FAILURE;
         }
 
         $useLatestSnapshot = $this->option('latest') ?: false;
@@ -44,16 +45,26 @@ class LoadSnapshot extends Command
         if (! $snapshot) {
             $this->warn("Snapshot `{$name}` does not exist!");
 
-            return;
+            return self::FAILURE;
         }
 
-        $snapshot->load(
-            $this->option('connection'),
-            (bool) $this->option('drop-tables'),
-            $this->option('database')
-        );
+        try {
+            $snapshot->load(
+                $this->option('connection'),
+                (bool) $this->option('drop-tables'),
+                $this->option('database')
+            );
+        } catch (ProcessFailed $e) {
+            // Never report success for a restore that did not happen - the target database
+            // may well be empty at this point.
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
+        }
 
         $this->info("Snapshot `{$name}` loaded!");
+
+        return self::SUCCESS;
     }
 
     public function askForSnapshotName(): string

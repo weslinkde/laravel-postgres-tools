@@ -50,9 +50,13 @@ composer docker:test  # Run integration tests with Docker
 - Factory method: `PostgresHelper::createForConnection(string $connectionName)` validates driver is `pgsql` and extracts connection config
 - Handles database credentials via `PGPASSWORD` environment variable for secure authentication
 - All Process calls use `setTimeout(0)` for large database operations
+- `binary(string $name)` resolves every client binary through `config('postgres-tools.bin_path')`, so a project can pin a client version instead of relying on `PATH`
+- Every process result is checked. Failures throw `RestoreFailed` / `DatabaseOperationFailed` (both extend `ProcessFailed`, which formats exit code, stdout and stderr into the message) — never return a failed Process to the caller
+- `assertSnapshotIsRestorable()` runs `pg_restore --list` as a preflight. It only reads the archive header and TOC and never connects, so it can run before any table is dropped
 
 **Snapshot** (`src/Snapshot.php`)
 - Core snapshot class for database dumps
+- `load()` resolves (and, for remote disks, streams) the dump file and preflights it **before** dropping tables — dropping first and discovering an unreadable archive afterwards is what turns an error into data loss
 - Implements streaming for non-local disks to handle large files without loading into memory
 - Dispatches custom events (LoadingSnapshot, LoadedSnapshot, etc.)
 - Uses Laravel Prompts for visual feedback during long-running operations
@@ -113,6 +117,7 @@ Commands use `AsksForSnapshotName` trait for consistent snapshot name handling.
    - `disk`: Laravel filesystem disk for snapshot storage (default: 'snapshots')
    - `default_connection`: Database connection (default: 'pgsql')
    - `temporary_directory_path`: For streaming non-local disk files
+   - `bin_path`: Directory holding the PostgreSQL client binaries (env `PG_BIN_PATH`, empty = resolve from `PATH`)
    - `tables`/`exclude`: Filter tables in snapshots (supports env vars `PG_INCLUDE_TABLES`, `PG_EXCLUDE_TABLES`)
    - `addExtraOption`: pg_dump flags (includes `--no-owner --no-acl --no-privileges -Z 3 -Fc`)
    - `jobs`: Parallel restore jobs via `PG_RESTORE_JOBS` env var

@@ -23,8 +23,8 @@ it('does not create database if it already exists', function (): void {
 
     // Try to create again
     $this->artisan('weslink:database:create', ['name' => $dbName])
-        ->expectsOutput('Failed to create database.')
-        ->assertExitCode(0);
+        ->expectsOutput("Database `{$dbName}` already exists.")
+        ->assertExitCode(1);
 });
 
 it('creates multiple databases with different names', function (): void {

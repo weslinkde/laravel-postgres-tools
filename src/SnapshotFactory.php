@@ -104,7 +104,8 @@ class SnapshotFactory
             ->setHost($dbHost ?? '')
             ->setDbName($dbName)
             ->setUserName($dbConfig['username'] ?? '')
-            ->setPassword($dbConfig['password'] ?? '');
+            ->setPassword($dbConfig['password'] ?? '')
+            ->setDumpBinaryPath(trim((string) config('postgres-tools.bin_path', '')));
 
         if (isset($dbConfig['port'])) {
             $dbDumper->setPort($dbConfig['port']);

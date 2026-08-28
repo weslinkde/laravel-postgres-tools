@@ -19,8 +19,8 @@ it('does not drop database if it does not exist', function (): void {
     $dbName = 'non_existent_db_'.time();
 
     $this->artisan('weslink:database:drop', ['name' => $dbName])
-        ->expectsOutput('Failed to drop database.')
-        ->assertExitCode(0);
+        ->expectsOutput("Database `{$dbName}` does not exist.")
+        ->assertExitCode(1);
 });
 
 it('drops multiple databases sequentially', function (): void {
