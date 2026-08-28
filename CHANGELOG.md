@@ -1,3 +1,61 @@
+## [2.0.0](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.4.0...v2.0.0) (2026-08-28)
+
+### ⚠ BREAKING CHANGES
+
+* commands now exit non-zero when they fail. "Database already
+exists", "database does not exist", "no snapshots found", "snapshot does not
+exist" and a declined confirmation return exit code 1 instead of 0, and the
+create/drop failure messages changed.
+
+Claude-Session: https://claude.ai/code/session_01TDxz7jfZj2cQyPV1K7a477
+
+* fix!: harden every command against silent failure
+
+Follow-up to the restore fix, covering the same defect class across the rest of
+the package.
+
+- PostgresDumper built its pg_dump invocation as a shell string and ran it
+  through `Process::fromShellCommandline`, with the host and every table name
+  interpolated unquoted. `weslink:snapshot:create --table="x; …"` and
+  `PG_INCLUDE_TABLES` could therefore execute arbitrary commands. The command is
+  now an argument array executed without a shell.
+- pg_dump writes with `--file` instead of a `>` redirect. A seekable target lets
+  pg_dump record the data offsets in the archive, which is what
+  `pg_restore --jobs` needs to restore in parallel.
+- streamToLocalFile() checks every write and compares the streamed byte count
+  against the size the disk reports. A download that broke off used to produce a
+  truncated dump that passed the preflight and failed after the tables were
+  gone.
+- The remaining eight commands returned void and exited 0 after printing their
+  error. They return int now, with self::FAILURE on every path that did not do
+  what was asked. An empty listing stays a success.
+- CloneDatabase used the fixed snapshot name `temp-snapshot` and deleted it
+  afterwards, so concurrent clones fought over one file and a real snapshot of
+  that name was destroyed. The name is unique per run now.
+- Removed the copy-pasted, unreachable askForSnapshotName() from CreateDatabase
+  and DropDatabase.
+- Replaced the placeholder skipped test in ListDatabasesTest with one that
+  asserts an unreachable server fails instead of reporting an empty list.
+- README and CLAUDE.md claimed PHP 8.1 and Laravel 10-12; composer.json requires
+  PHP ^8.2 and Laravel 11-13.
+* getDumpCommand() returns an array instead of a string, and the
+protected echoToFile(), determineQuote() and isWindows() helpers are gone. All
+commands now return an exit code: snapshot deletion of a missing snapshot,
+dumping with an invalid connection and a failed schema/data dump or VACUUM
+ANALYZE return 1 instead of 0.
+
+Claude-Session: https://claude.ai/code/session_01TDxz7jfZj2cQyPV1K7a477
+
+### Bug Fixes
+
+* fail loudly on failed restores instead of silently emptying the database ([#27](https://github.com/weslinkde/laravel-postgres-tools/issues/27)) ([9eef7e9](https://github.com/weslinkde/laravel-postgres-tools/commit/9eef7e9f8a4e9861d9425d60c9c218c45dfeb89f))
+
+### Build
+
+* **deps:** Bump actions/checkout from 6 to 7 ([#25](https://github.com/weslinkde/laravel-postgres-tools/issues/25)) ([ba5aa68](https://github.com/weslinkde/laravel-postgres-tools/commit/ba5aa68fb5fba263c935346052372791a4708154))
+* **deps:** Bump actions/setup-node from 6 to 7 ([#26](https://github.com/weslinkde/laravel-postgres-tools/issues/26)) ([726d2f1](https://github.com/weslinkde/laravel-postgres-tools/commit/726d2f1456149e64af5810476bc7cfa75fe76e41))
+* **deps:** Bump dependabot/fetch-metadata from 3.0.0 to 3.1.0 ([7040d93](https://github.com/weslinkde/laravel-postgres-tools/commit/7040d933a303275fad6914f36586cc95a44c5269))
+
 ## [1.4.0](https://github.com/weslinkde/laravel-postgres-tools/compare/v1.3.1...v1.4.0) (2026-03-31)
 
 ### Features
