@@ -5,11 +5,18 @@ namespace Weslinkde\PostgresTools\Support;
 use Illuminate\Support\Arr;
 use Symfony\Component\Process\Process;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
+use Weslinkde\PostgresTools\Exceptions\DatabaseOperationFailed;
+use Weslinkde\PostgresTools\Exceptions\RestoreFailed;
 use Weslinkde\PostgresTools\Snapshot;
 use Weslinkde\PostgresTools\SnapshotFactory;
 
 class PostgresHelper
 {
+    /**
+     * The magic string every pg_dump archive (custom, tar and directory format) starts with.
+     */
+    private const ARCHIVE_MAGIC = 'PGDMP';
+
     private string $connection;
 
     private string $name;
@@ -78,6 +85,23 @@ class PostgresHelper
         );
     }
 
+    /**
+     * Resolve a PostgreSQL client binary, honouring the configured `postgres-tools.bin_path`.
+     */
+    public function binary(string $name): string
+    {
+        $binPath = trim((string) config('postgres-tools.bin_path', ''));
+
+        if ($binPath === '') {
+            return $name;
+        }
+
+        return rtrim($binPath, '/').'/'.$name;
+    }
+
+    /**
+     * @throws DatabaseOperationFailed
+     */
     public function createDatabase(): Process|bool
     {
         // check if a database exists, if not create
@@ -86,16 +110,23 @@ class PostgresHelper
         }
 
         $process = new Process(
-            command: ['createdb', '--host', $this->host, '--port', $this->port, '--username', $this->userName, '--owner', $this->userName, $this->name],
+            command: [$this->binary('createdb'), '--host', $this->host, '--port', (string) $this->port, '--username', $this->userName, '--owner', $this->userName, $this->name],
             env: ['PGPASSWORD' => $this->password]
         );
         $process->setTimeout(0); // 0 = no timeout
 
         $process->run();
 
+        if (! $process->isSuccessful()) {
+            throw DatabaseOperationFailed::couldNotCreateDatabase($this->name, $process);
+        }
+
         return $process;
     }
 
+    /**
+     * @throws DatabaseOperationFailed
+     */
     public function dropDatabase(): Process|bool
     {
         // check if a database exists, if not go out
@@ -104,49 +135,149 @@ class PostgresHelper
         }
 
         $process = new Process(
-            command: ['dropdb', '--host', $this->host, '--port', $this->port, '--username', $this->userName, '--force', $this->name],
+            command: [$this->binary('dropdb'), '--host', $this->host, '--port', (string) $this->port, '--username', $this->userName, '--force', $this->name],
             env: ['PGPASSWORD' => $this->password]
         );
         $process->setTimeout(0); // 0 = no timeout
 
         $process->run();
 
+        if (! $process->isSuccessful()) {
+            throw DatabaseOperationFailed::couldNotDropDatabase($this->name, $process);
+        }
+
         return $process;
     }
 
+    /**
+     * @throws RestoreFailed
+     */
     public function restoreSnapshot(string $filePath): Process
     {
-        $jobs = config('postgres-tools.jobs', 1);
+        $jobs = (string) config('postgres-tools.jobs', 1);
 
         $process = new Process(
-            command: ['pg_restore', '--jobs', $jobs, '--host', $this->host, '--port', $this->port, '--username', $this->userName, '--no-owner', '--clean', '--if-exists', '--role', $this->userName, '--dbname', $this->name, $filePath],
+            command: [$this->binary('pg_restore'), '--jobs', $jobs, '--host', $this->host, '--port', (string) $this->port, '--username', $this->userName, '--no-owner', '--clean', '--if-exists', '--role', $this->userName, '--dbname', $this->name, $filePath],
             env: ['PGPASSWORD' => $this->password]
         );
 
         $process->setTimeout(0); // 0 = no timeout
         $process->run();
 
+        if (! $process->isSuccessful()) {
+            throw RestoreFailed::processDidNotEndSuccessfully($process);
+        }
+
         return $process;
     }
 
+    /**
+     * Verify the local client can actually read the archive.
+     *
+     * `pg_restore --list` only reads the archive header and table of contents and never
+     * connects to a database, so this can run before any table is dropped. Without it an
+     * unreadable archive - a truncated file, or one written by a newer pg_dump than the
+     * local client understands - is only discovered after the target database has been
+     * emptied.
+     *
+     * @throws RestoreFailed
+     */
+    public function assertSnapshotIsRestorable(string $filePath): void
+    {
+        if (! is_file($filePath) || ! is_readable($filePath)) {
+            throw RestoreFailed::snapshotFileIsNotReadable($filePath);
+        }
+
+        $process = new Process(command: [$this->binary('pg_restore'), '--list', $filePath]);
+        $process->setTimeout(0); // 0 = no timeout
+        $process->run();
+
+        if (! $process->isSuccessful()) {
+            throw RestoreFailed::archiveCannotBeReadByClient(
+                $filePath,
+                self::readArchiveVersion($filePath),
+                $this->clientVersion(),
+                $process
+            );
+        }
+    }
+
+    /**
+     * Read the archive format version out of a pg_dump archive header, e.g. `1.15`.
+     *
+     * Returns `null` when the file is not a pg_dump archive (a plain SQL dump, for example).
+     */
+    public static function readArchiveVersion(string $filePath): ?string
+    {
+        $handle = @fopen($filePath, 'rb');
+
+        if ($handle === false) {
+            return null;
+        }
+
+        $header = fread($handle, 8);
+        fclose($handle);
+
+        if (! is_string($header) || strlen($header) < 8 || ! str_starts_with($header, self::ARCHIVE_MAGIC)) {
+            return null;
+        }
+
+        return ord($header[5]).'.'.ord($header[6]);
+    }
+
+    /**
+     * The version banner of a local client binary, e.g. `pg_restore (PostgreSQL) 16.15`.
+     */
+    public function clientVersion(string $binary = 'pg_restore'): string
+    {
+        $process = new Process(command: [$this->binary($binary), '--version']);
+        $process->run();
+
+        return $process->isSuccessful() ? trim($process->getOutput()) : 'unknown';
+    }
+
+    /**
+     * @throws DatabaseOperationFailed
+     */
     public function checkIfDatabaseExists(string $databaseName): bool
     {
-        $sql = "SELECT datname FROM pg_catalog.pg_database WHERE datname = '$databaseName'";
-
         $process = new Process(
-            command: ['psql', '--host', $this->host, '--port', $this->port, '--username', $this->userName, '--dbname', 'postgres', '--command', $sql],
+            command: [
+                $this->binary('psql'),
+                '--host', $this->host,
+                '--port', (string) $this->port,
+                '--username', $this->userName,
+                '--dbname', 'postgres',
+                '--no-psqlrc',
+                '--tuples-only',
+                '--no-align',
+                '--set', 'ON_ERROR_STOP=1',
+                '--set', "dbname={$databaseName}",
+                // Read the statement from stdin so psql interpolates `:'dbname'` into a
+                // properly quoted SQL literal - `--command` does no interpolation at all.
+                '--file', '-',
+            ],
             env: ['PGPASSWORD' => $this->password]
         );
+        $process->setTimeout(0); // 0 = no timeout
+        $process->setInput("SELECT 1 FROM pg_catalog.pg_database WHERE datname = :'dbname'\n");
 
         $process->run();
 
-        return str_contains($process->getOutput(), $databaseName);
+        // A failing query must not be reported as "the database does not exist".
+        if (! $process->isSuccessful()) {
+            throw DatabaseOperationFailed::queryFailed("check whether the database `{$databaseName}` exists", $process);
+        }
+
+        return trim($process->getOutput()) === '1';
     }
 
     /**
      * List all PostgreSQL databases with their owner and size.
      *
      * @return array<int, array{name: string, owner: string, size: int}>
+     *
+     * @throws DatabaseOperationFailed
      */
     public function listDatabases(): array
     {
@@ -158,13 +289,15 @@ class PostgresHelper
 
         $process = new Process(
             command: [
-                'psql',
+                $this->binary('psql'),
                 '--host', $this->host,
                 '--port', (string) $this->port,
                 '--username', $this->userName,
                 '--dbname', 'postgres',
+                '--no-psqlrc',
                 '--tuples-only',
                 '--no-align',
+                '--set', 'ON_ERROR_STOP=1',
                 '--field-separator', '|',
                 '--command', $sql,
             ],
@@ -172,6 +305,10 @@ class PostgresHelper
         );
         $process->setTimeout(0);
         $process->run();
+
+        if (! $process->isSuccessful()) {
+            throw DatabaseOperationFailed::queryFailed('list the databases', $process);
+        }
 
         $output = trim($process->getOutput());
         if ($output === '' || $output === '0') {
@@ -238,6 +375,8 @@ class PostgresHelper
      * Get database size information including total size and table sizes.
      *
      * @return array{database: string, total_size: int, tables: array<int, array{name: string, size: int, rows: int}>}
+     *
+     * @throws DatabaseOperationFailed
      */
     public function getDatabaseSize(): array
     {
@@ -246,19 +385,25 @@ class PostgresHelper
 
         $process = new Process(
             command: [
-                'psql',
+                $this->binary('psql'),
                 '--host', $this->host,
                 '--port', (string) $this->port,
                 '--username', $this->userName,
                 '--dbname', $this->name,
+                '--no-psqlrc',
                 '--tuples-only',
                 '--no-align',
+                '--set', 'ON_ERROR_STOP=1',
                 '--command', $totalSizeSql,
             ],
             env: ['PGPASSWORD' => $this->password]
         );
         $process->setTimeout(0);
         $process->run();
+
+        if (! $process->isSuccessful()) {
+            throw DatabaseOperationFailed::queryFailed("read the size of database `{$this->name}`", $process);
+        }
 
         $totalSize = (int) trim($process->getOutput());
 
@@ -271,13 +416,15 @@ class PostgresHelper
 
         $process = new Process(
             command: [
-                'psql',
+                $this->binary('psql'),
                 '--host', $this->host,
                 '--port', (string) $this->port,
                 '--username', $this->userName,
                 '--dbname', $this->name,
+                '--no-psqlrc',
                 '--tuples-only',
                 '--no-align',
+                '--set', 'ON_ERROR_STOP=1',
                 '--field-separator', '|',
                 '--command', $tablesSql,
             ],
@@ -285,6 +432,10 @@ class PostgresHelper
         );
         $process->setTimeout(0);
         $process->run();
+
+        if (! $process->isSuccessful()) {
+            throw DatabaseOperationFailed::queryFailed("read the table sizes of database `{$this->name}`", $process);
+        }
 
         $output = trim($process->getOutput());
         $tables = [];
@@ -327,11 +478,13 @@ class PostgresHelper
 
         $process = new Process(
             command: [
-                'psql',
+                $this->binary('psql'),
                 '--host', $this->host,
                 '--port', (string) $this->port,
                 '--username', $this->userName,
                 '--dbname', $this->name,
+                '--no-psqlrc',
+                '--set', 'ON_ERROR_STOP=1',
                 '--command', $sql,
             ],
             env: ['PGPASSWORD' => $this->password]
@@ -349,7 +502,7 @@ class PostgresHelper
     {
         $process = new Process(
             command: [
-                'pg_dump',
+                $this->binary('pg_dump'),
                 '--host', $this->host,
                 '--port', (string) $this->port,
                 '--username', $this->userName,
@@ -375,7 +528,7 @@ class PostgresHelper
     public function dumpData(string $outputFile, ?array $tables = null): Process
     {
         $command = [
-            'pg_dump',
+            $this->binary('pg_dump'),
             '--host', $this->host,
             '--port', (string) $this->port,
             '--username', $this->userName,

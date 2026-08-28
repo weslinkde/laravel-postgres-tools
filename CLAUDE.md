@@ -50,9 +50,13 @@ composer docker:test  # Run integration tests with Docker
 - Factory method: `PostgresHelper::createForConnection(string $connectionName)` validates driver is `pgsql` and extracts connection config
 - Handles database credentials via `PGPASSWORD` environment variable for secure authentication
 - All Process calls use `setTimeout(0)` for large database operations
+- `binary(string $name)` resolves every client binary through `config('postgres-tools.bin_path')`, so a project can pin a client version instead of relying on `PATH`
+- Every process result is checked. Failures throw `RestoreFailed` / `DatabaseOperationFailed` (both extend `ProcessFailed`, which formats exit code, stdout and stderr into the message) — never return a failed Process to the caller
+- `assertSnapshotIsRestorable()` runs `pg_restore --list` as a preflight. It only reads the archive header and TOC and never connects, so it can run before any table is dropped
 
 **Snapshot** (`src/Snapshot.php`)
 - Core snapshot class for database dumps
+- `load()` resolves (and, for remote disks, streams) the dump file and preflights it **before** dropping tables — dropping first and discovering an unreadable archive afterwards is what turns an error into data loss
 - Implements streaming for non-local disks to handle large files without loading into memory
 - Dispatches custom events (LoadingSnapshot, LoadedSnapshot, etc.)
 - Uses Laravel Prompts for visual feedback during long-running operations
@@ -72,6 +76,7 @@ composer docker:test  # Run integration tests with Docker
 - Supports table filtering (include/exclude)
 - Uses PGPASSFILE for secure password handling
 - Configurable extra options for pg_dump
+- `getDumpCommand()` returns an argument array and writes via `--file`; never build a shell string here, and never go back to redirecting stdout — an unseekable target makes pg_dump omit the data offsets that `pg_restore --jobs` needs
 
 **DbDumperFactory** (`src/DbDumperFactory.php`)
 - Factory to create PostgresDumper instances from Laravel database connections
@@ -106,6 +111,8 @@ All commands use the `weslink:` namespace:
 
 Commands use `AsksForSnapshotName` trait for consistent snapshot name handling.
 
+All `handle()` methods return `int`. Anything that failed to do what was asked returns `self::FAILURE`; an empty listing is a success.
+
 ### Configuration Flow
 
 1. Package config published to `config/postgres-tools.php`
@@ -113,6 +120,7 @@ Commands use `AsksForSnapshotName` trait for consistent snapshot name handling.
    - `disk`: Laravel filesystem disk for snapshot storage (default: 'snapshots')
    - `default_connection`: Database connection (default: 'pgsql')
    - `temporary_directory_path`: For streaming non-local disk files
+   - `bin_path`: Directory holding the PostgreSQL client binaries (env `PG_BIN_PATH`, empty = resolve from `PATH`)
    - `tables`/`exclude`: Filter tables in snapshots (supports env vars `PG_INCLUDE_TABLES`, `PG_EXCLUDE_TABLES`)
    - `addExtraOption`: pg_dump flags (includes `--no-owner --no-acl --no-privileges -Z 3 -Fc`)
    - `jobs`: Parallel restore jobs via `PG_RESTORE_JOBS` env var
@@ -140,7 +148,8 @@ Commands use `AsksForSnapshotName` trait for consistent snapshot name handling.
 **Security**
 - Uses `PGPASSFILE` environment variable for secure password handling
 - Production confirmation required for destructive operations (drop database)
-- SQL injection protection via Process command arrays (not shell strings)
+- Command injection protection: every process is built as an argument array, never a shell string. `PostgresDumper::getDumpCommand()` returns an array and writes via `--file` instead of redirecting stdout — table names and hosts come from config and CLI options and must never reach a shell
+- Database names are passed to `psql` as variables (`:'dbname'`) rather than interpolated into SQL
 
 ## Testing
 
@@ -160,5 +169,5 @@ Integration tests extend `IntegrationTestCase` which provides:
 - `symfony/process` - For executing PostgreSQL CLI tools
 - `laravel/prompts` - For CLI interactions
 - `illuminate/contracts`, `illuminate/filesystem`, `illuminate/support` - Laravel core
-- Supports Laravel 10, 11, and 12
-- PHP 8.1+ required
+- Supports Laravel 11, 12, and 13
+- PHP 8.2+ required

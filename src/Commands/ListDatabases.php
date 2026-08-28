@@ -4,6 +4,7 @@ namespace Weslinkde\PostgresTools\Commands;
 
 use Illuminate\Console\Command;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
+use Weslinkde\PostgresTools\Exceptions\ProcessFailed;
 use Weslinkde\PostgresTools\Support\Format;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
@@ -16,29 +17,29 @@ class ListDatabases extends Command
 
     protected $description = 'List all PostgreSQL databases.';
 
-    public function handle(): void
+    public function handle(): int
     {
         $connectionName = $this->option('connection')
             ?: config('postgres-tools.default_connection', config('database.default'));
 
         try {
             $postgresHelper = PostgresHelper::createForConnection($connectionName);
-        } catch (CannotCreateConnection $e) {
+
+            /** @var array<int, array{name: string, owner: string, size: int}> $databases */
+            $databases = spin(
+                fn (): array => $postgresHelper->listDatabases(),
+                'Fetching databases...'
+            );
+        } catch (CannotCreateConnection|ProcessFailed $e) {
             $this->error($e->getMessage());
 
-            return;
+            return self::FAILURE;
         }
-
-        /** @var array<int, array{name: string, owner: string, size: int}> $databases */
-        $databases = spin(
-            fn (): array => $postgresHelper->listDatabases(),
-            'Fetching databases...'
-        );
 
         if (empty($databases)) {
             $this->warn('No databases found.');
 
-            return;
+            return self::SUCCESS;
         }
 
         $rows = array_map(fn (array $db): array => [
@@ -48,5 +49,7 @@ class ListDatabases extends Command
         ], $databases);
 
         table(['Name', 'Owner', 'Size'], $rows);
+
+        return self::SUCCESS;
     }
 }

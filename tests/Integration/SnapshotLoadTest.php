@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
     // Setup test table with data
@@ -70,7 +71,7 @@ it('loads the latest snapshot when --latest flag is used', function (): void {
 it('displays warning when no snapshots exist', function (): void {
     $this->artisan('weslink:snapshot:load')
         ->expectsOutput('No snapshots found. Run `snapshot:create` first to create snapshots.')
-        ->assertExitCode(0);
+        ->assertExitCode(1);
 });
 
 it('displays warning when specified snapshot does not exist', function (): void {
@@ -86,7 +87,7 @@ it('displays warning when specified snapshot does not exist', function (): void 
         '--force' => true,
     ])
         ->expectsOutput("Snapshot `{$nonExistentSnapshot}` does not exist!")
-        ->assertExitCode(0);
+        ->assertExitCode(1);
 });
 
 it('loads snapshot with custom connection', function (): void {
@@ -201,4 +202,39 @@ it('respects --force flag to skip confirmation', function (): void {
     ])
         ->expectsOutput("Snapshot `{$snapshotName}` loaded!")
         ->assertExitCode(0);
+});
+
+it('leaves the database untouched when the local client cannot read the archive', function (): void {
+    $snapshotName = $this->generateTestSnapshotName('unreadable');
+
+    // A pg_dump custom format header claiming archive version 1.99, which no client supports.
+    $header = 'PGDMP'.chr(1).chr(99).chr(0).chr(4).chr(8).chr(1);
+    Storage::disk('snapshots')->put($snapshotName.'.sql', $header.str_repeat("\0", 512));
+
+    expect(DB::table('snapshot_test')->count())->toBe(1);
+
+    $exitCode = $this->artisan('weslink:snapshot:load', [
+        'name' => $snapshotName,
+        '--force' => true,
+    ])->run();
+
+    // The restore must fail loudly and the existing data must still be there.
+    expect($exitCode)->toBe(1)
+        ->and(DB::table('snapshot_test')->count())->toBe(1)
+        ->and(DB::table('snapshot_test')->where('data', 'original_data')->exists())->toBeTrue();
+});
+
+it('leaves the database untouched when the snapshot file is empty', function (): void {
+    $snapshotName = $this->generateTestSnapshotName('empty_file');
+
+    // A truncated dump has no readable archive header either.
+    Storage::disk('snapshots')->put($snapshotName.'.sql', '');
+
+    $exitCode = $this->artisan('weslink:snapshot:load', [
+        'name' => $snapshotName,
+        '--force' => true,
+    ])->run();
+
+    expect($exitCode)->toBe(1)
+        ->and(DB::table('snapshot_test')->count())->toBe(1);
 });

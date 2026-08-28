@@ -17,12 +17,12 @@ class DeleteSnapshot extends Command
 
     protected $description = 'Delete a snapshot.';
 
-    public function handle(): void
+    public function handle(): int
     {
         if (app(PostgresSnapshotRepository::class)->getAll()->isEmpty()) {
             $this->warn('No snapshots found. Run `snapshot:create` to create snapshots.');
 
-            return;
+            return self::FAILURE;
         }
 
         $name = $this->argument('name') ?: $this->askForSnapshotName();
@@ -31,11 +31,13 @@ class DeleteSnapshot extends Command
         if (! $snapshot) {
             warning("Snapshot `{$name}` does not exist!");
 
-            return;
+            return self::FAILURE;
         }
 
         $snapshot->delete();
 
         info("Snapshot `{$snapshot->name}` deleted!");
+
+        return self::SUCCESS;
     }
 }

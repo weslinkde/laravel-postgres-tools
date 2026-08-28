@@ -3,9 +3,11 @@
 namespace Weslinkde\PostgresTools\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
+use function Laravel\Prompts\error;
 use function Laravel\Prompts\spin;
 
 class CloneDatabase extends Command
@@ -14,27 +16,46 @@ class CloneDatabase extends Command
 
     protected $description = 'Clones a database.';
 
-    public function handle(): void
+    public function handle(): int
     {
         $databaseName = $this->argument('databaseName');
         $newDatabaseName = $this->argument('newDatabaseName');
 
         $connectionName = config('postgres-tools.default_connection', config('database.default'));
 
-        $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($databaseName);
+        try {
+            $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($databaseName);
 
-        // Create a snapshot of the database
-        $snapshot = spin(fn () => $postgresHelper->createSnapshot('temp-snapshot'), 'Creating snapshot...');
-        // Create a new database
-        $postgresHelper->setName($newDatabaseName);
-        spin(fn (): Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
+            // Create a snapshot of the database. The name has to be unique: it is deleted
+            // again below, and two clones running at once must not fight over one file.
+            $temporarySnapshotName = 'clone-'.$databaseName.'-'.Str::random(8);
 
-        // Load the snapshot into the new database
-        spin(fn (): Process => $postgresHelper->restoreSnapshot($snapshot->disk->path($snapshot->fileName)), 'Loading snapshot...');
+            $snapshot = spin(fn () => $postgresHelper->createSnapshot($temporarySnapshotName), 'Creating snapshot...');
 
-        // Delete the snapshot
-        $snapshot->delete();
+            try {
+                $snapshotPath = $snapshot->disk->path($snapshot->fileName);
+
+                // Make sure the local client can read the archive before creating anything
+                $postgresHelper->assertSnapshotIsRestorable($snapshotPath);
+
+                // Create a new database
+                $postgresHelper->setName($newDatabaseName);
+                spin(fn (): Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
+
+                // Load the snapshot into the new database
+                spin(fn (): Process => $postgresHelper->restoreSnapshot($snapshotPath), 'Loading snapshot...');
+            } finally {
+                // Delete the snapshot, also when the clone failed half way through
+                $snapshot->delete();
+            }
+        } catch (\Exception $e) {
+            error($e->getMessage());
+
+            return self::FAILURE;
+        }
 
         $this->info("Database with name `{$newDatabaseName}` was created!");
+
+        return self::SUCCESS;
     }
 }

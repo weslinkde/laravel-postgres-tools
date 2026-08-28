@@ -18,7 +18,7 @@ class SchemaDump extends Command
 
     protected $description = 'Dump only the database schema (no data).';
 
-    public function handle(): void
+    public function handle(): int
     {
         $connectionName = $this->option('connection')
             ?: config('postgres-tools.default_connection', config('database.default'));
@@ -32,7 +32,7 @@ class SchemaDump extends Command
         } catch (CannotCreateConnection $e) {
             $this->error($e->getMessage());
 
-            return;
+            return self::FAILURE;
         }
 
         $name = $this->argument('name') ?? Carbon::now()->format('Y-m-d_H-i-s').'_schema';
@@ -46,12 +46,16 @@ class SchemaDump extends Command
             'Dumping database schema...'
         );
 
-        if ($process->isSuccessful()) {
-            $size = Format::humanReadableSize(filesize($outputPath) ?: 0);
-            $this->info("Schema dump created: {$fileName} ({$size})");
-            $this->info("Path: {$outputPath}");
-        } else {
+        if (! $process->isSuccessful()) {
             $this->error('Schema dump failed: '.$process->getErrorOutput());
+
+            return self::FAILURE;
         }
+
+        $size = Format::humanReadableSize(filesize($outputPath) ?: 0);
+        $this->info("Schema dump created: {$fileName} ({$size})");
+        $this->info("Path: {$outputPath}");
+
+        return self::SUCCESS;
     }
 }

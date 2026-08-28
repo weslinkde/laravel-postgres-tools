@@ -15,13 +15,14 @@ A Laravel package for PostgreSQL database management, optimized for large databa
 - **Flexible Storage**: Store snapshots on any Laravel filesystem disk (local, S3, etc.)
 - **Table Filtering**: Include or exclude specific tables from snapshots
 - **Parallel Restore**: Configure parallel jobs for faster restoration
+- **Fails Loudly**: Every PostgreSQL command is checked; a failed restore aborts with the original `pg_restore` error and a non-zero exit code
 
 ## Requirements
 
-- PHP 8.1+
-- Laravel 10, 11, or 12
+- PHP 8.2+
+- Laravel 11, 12, or 13
 - PostgreSQL database
-- PostgreSQL CLI tools (`pg_dump`, `pg_restore`, `createdb`, `dropdb`)
+- PostgreSQL CLI tools (`pg_dump`, `pg_restore`, `createdb`, `dropdb`), at least as new as the server the snapshots come from
 
 ## Installation
 
@@ -49,6 +50,9 @@ return [
 
     // Temporary directory for streaming from remote disks
     'temporary_directory_path' => storage_path('app/laravel-db-snapshots/temp'),
+
+    // Directory containing the PostgreSQL client binaries (empty = resolve from PATH)
+    'bin_path' => env('PG_BIN_PATH', ''),
 
     // Include only these tables (null = all tables)
     'tables' => env('PG_INCLUDE_TABLES', null),
@@ -153,7 +157,7 @@ PG_DUMP_OPTIONS="--no-owner --no-acl --no-privileges -Z 1 -Fc"
 
 ### Parallel Restore
 
-Configure parallel jobs based on database size:
+Snapshots are written with `pg_dump --file`, so the archive records data offsets and `pg_restore --jobs` can genuinely restore in parallel. Configure parallel jobs based on database size:
 
 | Database Size | Recommended Jobs |
 |--------------|------------------|
@@ -169,6 +173,53 @@ PG_RESTORE_JOBS=8
 ### Cloud Storage
 
 When using remote storage (S3, etc.), snapshots are automatically streamed to a local temp directory during restore to avoid memory issues.
+
+## Client Version Mismatches
+
+`pg_restore` can only read archives written by a `pg_dump` of the same major version or older. A PostgreSQL 14 client reading a dump from a PostgreSQL 16 server fails with:
+
+```
+pg_restore: error: unsupported version (1.15) in file header
+```
+
+`weslink:snapshot:load` verifies the archive with `pg_restore --list` **before** it drops a single table, so a mismatch aborts while the target database is still intact:
+
+```
+The local PostgreSQL client cannot read the snapshot archive `/path/to/snapshot.sql`
+(archive format version 1.15, client: pg_restore (PostgreSQL) 14.24). The database was
+left untouched. Install a PostgreSQL client that is at least as new as the server the
+snapshot was dumped from, or point `postgres-tools.bin_path` at one.
+```
+
+Instead of relying on whatever `pg_restore` happens to be first on `PATH`, pin the client explicitly:
+
+```bash
+# In your .env file
+PG_BIN_PATH=/opt/homebrew/opt/postgresql@16/bin
+```
+
+This path is used for `pg_dump`, `pg_restore`, `psql`, `createdb` and `dropdb` alike.
+
+## Error Handling
+
+Every command exits with a non-zero status when it fails, so scripts and CI can detect problems:
+
+| Situation | Behaviour |
+|-----------|-----------|
+| Archive unreadable by the local client | Aborts before dropping anything, exit code 1 |
+| `pg_restore` fails during the restore | `RestoreFailed` with the full `pg_restore` stderr, exit code 1 |
+| `createdb` / `dropdb` fails | `DatabaseOperationFailed` with the client stderr, exit code 1 |
+| `psql` cannot reach the server | Throws instead of reporting "database does not exist" |
+| Snapshot streamed incompletely from a remote disk | Aborts before dropping anything, exit code 1 |
+| Snapshot name not found | Warning, exit code 1 |
+| Schema/data dump or `VACUUM ANALYZE` fails | Error with the client stderr, exit code 1 |
+| Listing an empty set of snapshots or databases | Warning, exit code 0 — an empty result is not a failure |
+
+The exceptions live in `Weslinkde\PostgresTools\Exceptions` and all extend `ProcessFailed`, which carries the exit code, stdout and stderr of the failed command in its message.
+
+## Security
+
+All PostgreSQL commands are built as argument arrays and executed without a shell, so table names, hosts and database names coming from configuration or command line options cannot be interpreted as shell syntax. Database names are handed to `psql` as variables (`:'dbname'`) rather than interpolated into SQL. Passwords are passed via `PGPASSWORD` / `PGPASSFILE`, never on the command line.
 
 ## Events
 

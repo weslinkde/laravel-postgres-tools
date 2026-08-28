@@ -34,7 +34,7 @@ it('deletes an existing snapshot', function (): void {
 it('displays warning when no snapshots exist', function (): void {
     $this->artisan('weslink:snapshot:delete')
         ->expectsOutput('No snapshots found. Run `snapshot:create` to create snapshots.')
-        ->assertExitCode(0);
+        ->assertExitCode(1);
 });
 
 it('handles deleting non-existent snapshot gracefully', function (): void {
@@ -45,9 +45,9 @@ it('handles deleting non-existent snapshot gracefully', function (): void {
     $this->artisan('weslink:snapshot:create', ['name' => $existingSnapshot])
         ->assertExitCode(0);
 
-    // Try to delete a non-existent snapshot - should exit gracefully
+    // Deleting a snapshot that is not there did not do what was asked
     $this->artisan('weslink:snapshot:delete', ['name' => $nonExistentSnapshot])
-        ->assertExitCode(0);
+        ->assertExitCode(1);
 
     // Original snapshot should still exist
     expect($this->snapshotExists($existingSnapshot))->toBeTrue();

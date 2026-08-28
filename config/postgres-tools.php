@@ -18,6 +18,17 @@ return [
     'temporary_directory_path' => storage_path('app/laravel-db-snapshots/temp'),
 
     /*
+     * The directory containing the PostgreSQL client binaries (`pg_dump`, `pg_restore`,
+     * `psql`, `createdb`, `dropdb`). Leave empty to resolve them from `PATH`.
+     *
+     * Pin this when the client on the machine is older than the server the snapshots were
+     * dumped from - pg_restore cannot read an archive written by a newer pg_dump.
+     *
+     * Example: '/opt/homebrew/opt/postgresql@16/bin'
+     */
+    'bin_path' => env('PG_BIN_PATH', ''),
+
+    /*
      * Only these tables will be included in the snapshot. Set to `null` to include all tables.
      *
      * Default: `null`

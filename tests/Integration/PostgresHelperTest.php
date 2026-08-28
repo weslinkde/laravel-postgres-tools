@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
+use Weslinkde\PostgresTools\Exceptions\DatabaseOperationFailed;
+use Weslinkde\PostgresTools\Exceptions\RestoreFailed;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
 it('creates a new database', function (): void {
@@ -213,3 +215,30 @@ it('handles connect_via_database configuration', function (): void {
 
     expect($helper)->toBeInstanceOf(PostgresHelper::class);
 });
+
+it('throws instead of reporting "not found" when the existence check cannot reach the server', function (): void {
+    // Port 1 is never a PostgreSQL server, so psql fails to connect.
+    PostgresHelper::createForConnection('pgsql')
+        ->setPort(1)
+        ->checkIfDatabaseExists('any_database');
+})->throws(DatabaseOperationFailed::class, 'check whether the database `any_database` exists');
+
+it('throws when the snapshot archive cannot be read by the client', function (): void {
+    $filePath = Storage::disk('snapshots')->path('unreadable_archive.sql');
+
+    // A pg_dump custom format header claiming archive version 1.99, which no client supports.
+    file_put_contents($filePath, 'PGDMP'.chr(1).chr(99).chr(0).chr(4).chr(8).chr(1).str_repeat("\0", 512));
+
+    try {
+        PostgresHelper::createForConnection('pgsql')->restoreSnapshot($filePath);
+    } finally {
+        unlink($filePath);
+    }
+})->throws(RestoreFailed::class);
+
+it('accepts a snapshot it just created', function (): void {
+    $helper = PostgresHelper::createForConnection('pgsql');
+    $snapshot = $helper->createSnapshot($this->generateTestSnapshotName('preflight'));
+
+    $helper->assertSnapshotIsRestorable(Storage::disk('snapshots')->path($snapshot->fileName));
+})->throwsNoExceptions();

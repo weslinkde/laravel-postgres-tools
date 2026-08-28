@@ -5,12 +5,9 @@ namespace Weslinkde\PostgresTools\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Console\ConfirmableTrait;
 use Symfony\Component\Process\Process;
-use Weslinkde\PostgresTools\PostgresSnapshotRepository;
-use Weslinkde\PostgresTools\Snapshot;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 
 class CreateDatabase extends Command
@@ -21,7 +18,7 @@ class CreateDatabase extends Command
 
     protected $description = 'Creates a database.';
 
-    public function handle(): void
+    public function handle(): int
     {
         $newDatabaseName = $this->argument('name');
 
@@ -29,34 +26,23 @@ class CreateDatabase extends Command
 
         try {
             $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($newDatabaseName);
+
+            /** @var Process|bool $result */
+            $result = spin(fn (): Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
         } catch (\Exception $e) {
             error($e->getMessage());
 
-            return;
+            return self::FAILURE;
         }
 
-        /** @var Process|bool $result */
-        $result = spin(fn (): Process|bool => $postgresHelper->createDatabase(), 'Creating new database...');
+        if ($result === false) {
+            $this->error("Database `{$newDatabaseName}` already exists.");
 
-        if ($result === false || ! $result->isSuccessful()) {
-            $this->error('Failed to create database.');
-
-            return;
+            return self::FAILURE;
         }
 
         $this->info("Database with name `{$newDatabaseName}` was created!");
-    }
 
-    public function askForSnapshotName(): string
-    {
-        $snapShots = app(PostgresSnapshotRepository::class)->getAll();
-
-        $names = $snapShots->map(fn (Snapshot $snapshot): string => $snapshot->name)
-            ->values()->toArray();
-
-        return select(
-            'Which snapshot should be loaded?',
-            $names,
-        );
+        return self::SUCCESS;
     }
 }
