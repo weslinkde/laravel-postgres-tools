@@ -4,6 +4,7 @@ namespace Weslinkde\PostgresTools\Commands;
 
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Weslinkde\PostgresTools\Dumper\Exceptions\DumpFailed;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
 use Weslinkde\PostgresTools\Snapshot;
 use Weslinkde\PostgresTools\Support\Format;
@@ -19,7 +20,7 @@ class CreateSnapshot extends Command
 
     protected $description = 'Create a new snapshot.';
 
-    public function handle(): void
+    public function handle(): int
     {
         $connectionName = $this->option('connection')
             ?: config('postgres-tools.default_connection', config('database.default'));
@@ -29,7 +30,7 @@ class CreateSnapshot extends Command
         } catch (CannotCreateConnection $e) {
             error($e->getMessage());
 
-            return;
+            return self::FAILURE;
         }
 
         $snapshotName = $this->argument('name') ?? Carbon::now()->format('Y-m-d_H-i-s');
@@ -54,16 +55,22 @@ class CreateSnapshot extends Command
             $postgresHelper->setName($database);
         }
 
-        /** @var Snapshot $snapshot */
-        $snapshot = spin(
-            fn () => $postgresHelper->createSnapshot(
-                snapshotName: $snapshotName,
-                tables: $tables,
-                exclude: $exclude,
-                excludeTableData: $excludeTableData
-            ),
-            'Creating new snapshot...'
-        );
+        try {
+            /** @var Snapshot $snapshot */
+            $snapshot = spin(
+                fn () => $postgresHelper->createSnapshot(
+                    snapshotName: $snapshotName,
+                    tables: $tables,
+                    exclude: $exclude,
+                    excludeTableData: $excludeTableData
+                ),
+                'Creating new snapshot...'
+            );
+        } catch (DumpFailed $e) {
+            error($e->getMessage());
+
+            return self::FAILURE;
+        }
 
         $size = Format::humanReadableSize($snapshot->size());
 
@@ -74,5 +81,6 @@ class CreateSnapshot extends Command
             ]
         );
 
+        return self::SUCCESS;
     }
 }

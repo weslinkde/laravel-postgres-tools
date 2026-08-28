@@ -18,7 +18,7 @@ class DataDump extends Command
 
     protected $description = 'Dump only the database data (no schema) - useful for seed files.';
 
-    public function handle(): void
+    public function handle(): int
     {
         $connectionName = $this->option('connection')
             ?: config('postgres-tools.default_connection', config('database.default'));
@@ -32,7 +32,7 @@ class DataDump extends Command
         } catch (CannotCreateConnection $e) {
             $this->error($e->getMessage());
 
-            return;
+            return self::FAILURE;
         }
 
         /** @var array<string> $tables */
@@ -52,16 +52,20 @@ class DataDump extends Command
             "Dumping data from {$target}..."
         );
 
-        if ($process->isSuccessful()) {
-            $size = Format::humanReadableSize(filesize($outputPath) ?: 0);
-            $this->info("Data dump created: {$fileName} ({$size})");
-            $this->info("Path: {$outputPath}");
-
-            if ($tables) {
-                $this->info('Tables: '.implode(', ', $tables));
-            }
-        } else {
+        if (! $process->isSuccessful()) {
             $this->error('Data dump failed: '.$process->getErrorOutput());
+
+            return self::FAILURE;
         }
+
+        $size = Format::humanReadableSize(filesize($outputPath) ?: 0);
+        $this->info("Data dump created: {$fileName} ({$size})");
+        $this->info("Path: {$outputPath}");
+
+        if ($tables) {
+            $this->info('Tables: '.implode(', ', $tables));
+        }
+
+        return self::SUCCESS;
     }
 }

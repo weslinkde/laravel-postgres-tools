@@ -93,5 +93,5 @@ it('fails when using invalid connection', function (): void {
         'name' => 'test',
         '--connection' => 'invalid_connection',
     ])
-        ->assertExitCode(0); // Command returns 0 but outputs error
+        ->assertExitCode(1);
 });

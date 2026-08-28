@@ -3,6 +3,7 @@
 namespace Weslinkde\PostgresTools\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
@@ -25,8 +26,11 @@ class CloneDatabase extends Command
         try {
             $postgresHelper = PostgresHelper::createForConnection($connectionName)->setName($databaseName);
 
-            // Create a snapshot of the database
-            $snapshot = spin(fn () => $postgresHelper->createSnapshot('temp-snapshot'), 'Creating snapshot...');
+            // Create a snapshot of the database. The name has to be unique: it is deleted
+            // again below, and two clones running at once must not fight over one file.
+            $temporarySnapshotName = 'clone-'.$databaseName.'-'.Str::random(8);
+
+            $snapshot = spin(fn () => $postgresHelper->createSnapshot($temporarySnapshotName), 'Creating snapshot...');
 
             try {
                 $snapshotPath = $snapshot->disk->path($snapshot->fileName);

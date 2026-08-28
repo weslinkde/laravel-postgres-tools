@@ -41,6 +41,8 @@ class Snapshot
      */
     protected function streamToLocalFile(Disk $sourceDisk, string $sourcePath, string $localFilePath): void
     {
+        $expectedSize = $sourceDisk->size($sourcePath);
+
         $readStream = $sourceDisk->readStream($sourcePath);
 
         if (! is_resource($readStream)) {
@@ -54,12 +56,40 @@ class Snapshot
             throw new Exception("Failed to open local file {$localFilePath} for writing.");
         }
 
-        while (! feof($readStream)) {
-            fwrite($localFile, fread($readStream, 8192));
+        $writtenBytes = 0;
+
+        try {
+            while (! feof($readStream)) {
+                $chunk = fread($readStream, 8192);
+
+                if ($chunk === false) {
+                    throw new Exception("Failed to read {$sourcePath} from disk.");
+                }
+
+                if ($chunk === '') {
+                    continue;
+                }
+
+                $written = fwrite($localFile, $chunk);
+
+                // A short write means the local disk is full or the file handle died.
+                // Carrying on would silently produce a truncated dump.
+                if ($written === false || $written !== strlen($chunk)) {
+                    throw new Exception("Failed to write {$localFilePath}; the local disk may be full.");
+                }
+
+                $writtenBytes += $written;
+            }
+        } finally {
+            fclose($readStream);
+            fclose($localFile);
         }
 
-        fclose($readStream);
-        fclose($localFile);
+        if ($writtenBytes !== $expectedSize) {
+            throw new Exception(
+                "Snapshot {$sourcePath} was streamed incompletely: expected {$expectedSize} bytes, got {$writtenBytes}."
+            );
+        }
     }
 
     /**
@@ -86,19 +116,21 @@ class Snapshot
         // verified before anything is dropped - otherwise a broken snapshot leaves an empty
         // database behind.
         $isDiskLocal = $this->disk->getConfig()['driver'] === 'local';
+        $dbDumpDirectory = rtrim((string) config('postgres-tools.temporary_directory_path'), '/').'/';
 
-        if ($isDiskLocal) {
-            $dbDumpFilePath = $this->disk->path($this->fileName);
-        } else {
-            $dbDumpDirectory = rtrim((string) config('postgres-tools.temporary_directory_path'), '/').'/';
-            $dbDumpFilePath = $dbDumpDirectory.$this->fileName;
-            if (! file_exists($dbDumpDirectory)) {
-                mkdir($dbDumpDirectory, 0777, true);
-            }
-            $this->streamToLocalFile($this->disk, $this->fileName, $dbDumpFilePath);
-        }
+        $dbDumpFilePath = $isDiskLocal
+            ? $this->disk->path($this->fileName)
+            : $dbDumpDirectory.$this->fileName;
 
         try {
+            if (! $isDiskLocal) {
+                if (! file_exists($dbDumpDirectory)) {
+                    mkdir($dbDumpDirectory, 0777, true);
+                }
+
+                $this->streamToLocalFile($this->disk, $this->fileName, $dbDumpFilePath);
+            }
+
             $postgresHelper->assertSnapshotIsRestorable($dbDumpFilePath);
 
             if ($database !== null) {

@@ -76,6 +76,7 @@ composer docker:test  # Run integration tests with Docker
 - Supports table filtering (include/exclude)
 - Uses PGPASSFILE for secure password handling
 - Configurable extra options for pg_dump
+- `getDumpCommand()` returns an argument array and writes via `--file`; never build a shell string here, and never go back to redirecting stdout — an unseekable target makes pg_dump omit the data offsets that `pg_restore --jobs` needs
 
 **DbDumperFactory** (`src/DbDumperFactory.php`)
 - Factory to create PostgresDumper instances from Laravel database connections
@@ -109,6 +110,8 @@ All commands use the `weslink:` namespace:
 6. **weslink:database:clone** - Clones databases by creating snapshot and restoring to new database
 
 Commands use `AsksForSnapshotName` trait for consistent snapshot name handling.
+
+All `handle()` methods return `int`. Anything that failed to do what was asked returns `self::FAILURE`; an empty listing is a success.
 
 ### Configuration Flow
 
@@ -145,7 +148,8 @@ Commands use `AsksForSnapshotName` trait for consistent snapshot name handling.
 **Security**
 - Uses `PGPASSFILE` environment variable for secure password handling
 - Production confirmation required for destructive operations (drop database)
-- SQL injection protection via Process command arrays (not shell strings)
+- Command injection protection: every process is built as an argument array, never a shell string. `PostgresDumper::getDumpCommand()` returns an array and writes via `--file` instead of redirecting stdout — table names and hosts come from config and CLI options and must never reach a shell
+- Database names are passed to `psql` as variables (`:'dbname'`) rather than interpolated into SQL
 
 ## Testing
 
@@ -165,5 +169,5 @@ Integration tests extend `IntegrationTestCase` which provides:
 - `symfony/process` - For executing PostgreSQL CLI tools
 - `laravel/prompts` - For CLI interactions
 - `illuminate/contracts`, `illuminate/filesystem`, `illuminate/support` - Laravel core
-- Supports Laravel 10, 11, and 12
-- PHP 8.1+ required
+- Supports Laravel 11, 12, and 13
+- PHP 8.2+ required

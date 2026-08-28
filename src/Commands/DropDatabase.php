@@ -5,12 +5,9 @@ namespace Weslinkde\PostgresTools\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Console\ConfirmableTrait;
 use Symfony\Component\Process\Process;
-use Weslinkde\PostgresTools\PostgresSnapshotRepository;
-use Weslinkde\PostgresTools\Snapshot;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
 use function Laravel\Prompts\error;
-use function Laravel\Prompts\select;
 use function Laravel\Prompts\spin;
 
 class DropDatabase extends Command
@@ -51,18 +48,5 @@ class DropDatabase extends Command
         $this->info("Database with name `{$databaseName}` was dropped!");
 
         return self::SUCCESS;
-    }
-
-    public function askForSnapshotName(): string
-    {
-        $snapShots = app(PostgresSnapshotRepository::class)->getAll();
-
-        $names = $snapShots->map(fn (Snapshot $snapshot): string => $snapshot->name)
-            ->values()->toArray();
-
-        return select(
-            'Which snapshot should be loaded?',
-            $names,
-        );
     }
 }

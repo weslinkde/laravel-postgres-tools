@@ -19,8 +19,8 @@ A Laravel package for PostgreSQL database management, optimized for large databa
 
 ## Requirements
 
-- PHP 8.1+
-- Laravel 10, 11, or 12
+- PHP 8.2+
+- Laravel 11, 12, or 13
 - PostgreSQL database
 - PostgreSQL CLI tools (`pg_dump`, `pg_restore`, `createdb`, `dropdb`), at least as new as the server the snapshots come from
 
@@ -157,7 +157,7 @@ PG_DUMP_OPTIONS="--no-owner --no-acl --no-privileges -Z 1 -Fc"
 
 ### Parallel Restore
 
-Configure parallel jobs based on database size:
+Snapshots are written with `pg_dump --file`, so the archive records data offsets and `pg_restore --jobs` can genuinely restore in parallel. Configure parallel jobs based on database size:
 
 | Database Size | Recommended Jobs |
 |--------------|------------------|
@@ -202,7 +202,7 @@ This path is used for `pg_dump`, `pg_restore`, `psql`, `createdb` and `dropdb` a
 
 ## Error Handling
 
-All commands exit with a non-zero status when they fail, so scripts and CI can detect problems:
+Every command exits with a non-zero status when it fails, so scripts and CI can detect problems:
 
 | Situation | Behaviour |
 |-----------|-----------|
@@ -210,9 +210,16 @@ All commands exit with a non-zero status when they fail, so scripts and CI can d
 | `pg_restore` fails during the restore | `RestoreFailed` with the full `pg_restore` stderr, exit code 1 |
 | `createdb` / `dropdb` fails | `DatabaseOperationFailed` with the client stderr, exit code 1 |
 | `psql` cannot reach the server | Throws instead of reporting "database does not exist" |
+| Snapshot streamed incompletely from a remote disk | Aborts before dropping anything, exit code 1 |
 | Snapshot name not found | Warning, exit code 1 |
+| Schema/data dump or `VACUUM ANALYZE` fails | Error with the client stderr, exit code 1 |
+| Listing an empty set of snapshots or databases | Warning, exit code 0 — an empty result is not a failure |
 
 The exceptions live in `Weslinkde\PostgresTools\Exceptions` and all extend `ProcessFailed`, which carries the exit code, stdout and stderr of the failed command in its message.
+
+## Security
+
+All PostgreSQL commands are built as argument arrays and executed without a shell, so table names, hosts and database names coming from configuration or command line options cannot be interpreted as shell syntax. Database names are handed to `psql` as variables (`:'dbname'`) rather than interpolated into SQL. Passwords are passed via `PGPASSWORD` / `PGPASSFILE`, never on the command line.
 
 ## Events
 

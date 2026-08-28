@@ -180,15 +180,22 @@ class PostgresDumper
         $this->checkIfDumpWasSuccessFul($process, $dumpFile);
     }
 
-    public function getDumpCommand(string $dumpFile): string
+    /**
+     * Build the pg_dump invocation as an argument list.
+     *
+     * Never assemble this into a shell string: table names and hosts come from
+     * configuration and command line options, and a shell would happily execute
+     * whatever they contain.
+     *
+     * @return array<int, string>
+     */
+    public function getDumpCommand(string $dumpFile): array
     {
-        $quote = $this->determineQuote();
-
         $command = [
-            "{$quote}{$this->dumpBinaryPath}pg_dump{$quote}",
-            "-U \"{$this->userName}\"",
-            '-h '.$this->host,
-            "-p {$this->port}",
+            $this->dumpBinaryPath.'pg_dump',
+            '--username', $this->userName,
+            '--host', $this->host,
+            '--port', (string) $this->port,
         ];
 
         if ($this->useInserts) {
@@ -207,15 +214,23 @@ class PostgresDumper
             $command[] = $extraOption;
         }
 
-        if ($this->includeTables !== []) {
-            $command[] = '-t '.implode(' -t ', $this->includeTables);
+        foreach ($this->includeTables as $includeTable) {
+            $command[] = '--table';
+            $command[] = $includeTable;
         }
 
-        if ($this->excludeTables !== []) {
-            $command[] = '-T '.implode(' -T ', $this->excludeTables);
+        foreach ($this->excludeTables as $excludeTable) {
+            $command[] = '--exclude-table';
+            $command[] = $excludeTable;
         }
 
-        return $this->echoToFile(implode(' ', $command), $dumpFile);
+        // Writing to a seekable file rather than redirecting stdout lets pg_dump record
+        // the data offsets in the archive, which is what `pg_restore --jobs` needs to
+        // restore in parallel.
+        $command[] = '--file';
+        $command[] = $dumpFile;
+
+        return $command;
     }
 
     public function getContentsOfCredentialsFile(): string
@@ -264,7 +279,7 @@ class PostgresDumper
 
         $envVars = $this->getEnvironmentVariablesForDumpCommand($temporaryCredentialsFile);
 
-        return Process::fromShellCommandline($command, null, $envVars, null, $this->timeout);
+        return new Process($command, null, $envVars, null, $this->timeout);
     }
 
     /**
@@ -296,22 +311,5 @@ class PostgresDumper
         if (filesize($outputFile) === 0) {
             throw DumpFailed::dumpfileWasEmpty($process);
         }
-    }
-
-    protected function echoToFile(string $command, string $dumpFile): string
-    {
-        $dumpFile = '"'.addcslashes($dumpFile, '\\"').'"';
-
-        return $command.' > '.$dumpFile;
-    }
-
-    protected function determineQuote(): string
-    {
-        return $this->isWindows() ? '"' : "'";
-    }
-
-    protected function isWindows(): bool
-    {
-        return str_starts_with(strtoupper(PHP_OS), 'WIN');
     }
 }

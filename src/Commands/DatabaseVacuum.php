@@ -15,7 +15,7 @@ class DatabaseVacuum extends Command
 
     protected $description = 'Run VACUUM ANALYZE to optimize database performance.';
 
-    public function handle(): void
+    public function handle(): int
     {
         $connectionName = $this->option('connection')
             ?: config('postgres-tools.default_connection', config('database.default'));
@@ -29,7 +29,7 @@ class DatabaseVacuum extends Command
         } catch (CannotCreateConnection $e) {
             $this->error($e->getMessage());
 
-            return;
+            return self::FAILURE;
         }
 
         /** @var array<string> $tables */
@@ -43,10 +43,14 @@ class DatabaseVacuum extends Command
             "Running VACUUM ANALYZE on {$target}..."
         );
 
-        if ($process->isSuccessful()) {
-            $this->info("VACUUM ANALYZE completed successfully on {$target}.");
-        } else {
+        if (! $process->isSuccessful()) {
             $this->error('VACUUM ANALYZE failed: '.$process->getErrorOutput());
+
+            return self::FAILURE;
         }
+
+        $this->info("VACUUM ANALYZE completed successfully on {$target}.");
+
+        return self::SUCCESS;
     }
 }

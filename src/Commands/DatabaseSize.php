@@ -4,6 +4,7 @@ namespace Weslinkde\PostgresTools\Commands;
 
 use Illuminate\Console\Command;
 use Weslinkde\PostgresTools\Exceptions\CannotCreateConnection;
+use Weslinkde\PostgresTools\Exceptions\ProcessFailed;
 use Weslinkde\PostgresTools\Support\Format;
 use Weslinkde\PostgresTools\Support\PostgresHelper;
 
@@ -16,7 +17,7 @@ class DatabaseSize extends Command
 
     protected $description = 'Show database and table sizes.';
 
-    public function handle(): void
+    public function handle(): int
     {
         $connectionName = $this->option('connection')
             ?: config('postgres-tools.default_connection', config('database.default'));
@@ -27,17 +28,17 @@ class DatabaseSize extends Command
             if ($database = $this->option('database')) {
                 $postgresHelper->setName($database);
             }
-        } catch (CannotCreateConnection $e) {
+
+            /** @var array{database: string, total_size: int, tables: array<int, array{name: string, size: int, rows: int}>} $sizeInfo */
+            $sizeInfo = spin(
+                fn (): array => $postgresHelper->getDatabaseSize(),
+                'Calculating database size...'
+            );
+        } catch (CannotCreateConnection|ProcessFailed $e) {
             $this->error($e->getMessage());
 
-            return;
+            return self::FAILURE;
         }
-
-        /** @var array{database: string, total_size: int, tables: array<int, array{name: string, size: int, rows: int}>} $sizeInfo */
-        $sizeInfo = spin(
-            fn (): array => $postgresHelper->getDatabaseSize(),
-            'Calculating database size...'
-        );
 
         $this->info("Database: {$sizeInfo['database']}");
         $this->info('Total Size: '.Format::humanReadableSize($sizeInfo['total_size']));
@@ -46,7 +47,7 @@ class DatabaseSize extends Command
         if (empty($sizeInfo['tables'])) {
             $this->warn('No tables found.');
 
-            return;
+            return self::SUCCESS;
         }
 
         $rows = array_map(fn (array $table): array => [
@@ -56,5 +57,7 @@ class DatabaseSize extends Command
         ], $sizeInfo['tables']);
 
         table(['Table', 'Size', 'Rows'], $rows);
+
+        return self::SUCCESS;
     }
 }
